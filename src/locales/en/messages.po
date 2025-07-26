@@ -13,19 +13,23 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: src/App.tsx:74
+#: src/App.tsx:70
 msgid "Prefix must not be empty."
 msgstr "Prefix must not be empty."
 
-#: src/App.tsx:76
+#: src/App.tsx:72
 msgid "Suffix must not be empty."
 msgstr "Suffix must not be empty."
 
-#: src/App.tsx:78
+#: src/App.tsx:75
+msgid "Dates must be set."
+msgstr "Dates must be set."
+
+#: src/App.tsx:77
 msgid "Start date must be set."
 msgstr "Start date must be set."
 
-#: src/App.tsx:80
+#: src/App.tsx:79
 msgid "End date must be set."
 msgstr "End date must be set."
 
@@ -35,24 +39,24 @@ msgstr "Location must be set."
 
 #. placeholder {0}: start != null ? i18n.date(start, FORMAT) : ""
 #. placeholder {1}: end != null ? i18n.date(end, FORMAT) : ""
-#: src/App.tsx:111
+#: src/App.tsx:105
 msgctxt "date range"
 msgid "{0} – {1}"
 msgstr "{0} – {1}"
 
-#: src/App.tsx:158
+#: src/App.tsx:154
 msgid "Name"
 msgstr "Name"
 
-#: src/App.tsx:167
+#: src/App.tsx:163
 msgid "Include the year or number of the convention, e.g. “RainFurrest 2016” or “Eurofurence 29”."
 msgstr "Include the year or number of the convention, e.g. “RainFurrest 2016” or “Eurofurence 29”."
 
-#: src/App.tsx:186
+#: src/App.tsx:182
 msgid "Dates"
 msgstr "Dates"
 
-#: src/App.tsx:254
+#: src/App.tsx:223
 msgid "Location"
 msgstr "Location"
 

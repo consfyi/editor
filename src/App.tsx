@@ -12,7 +12,7 @@ import {
   TextInput,
 } from "@mantine/core";
 import "@mantine/core/styles.css";
-import { DatePicker } from "@mantine/dates";
+import { DatePicker, DatesProvider, type DayOfWeek } from "@mantine/dates";
 import "@mantine/dates/styles.css";
 import { useForm } from "@mantine/form";
 import {
@@ -27,16 +27,6 @@ import { messages } from "./locales/en/messages.po";
 import PlacePicker from "./PlacePicker";
 
 i18n.loadAndActivate({ locale: "en", messages });
-
-export interface Entry {
-  prefix: string;
-  suffix: string;
-  startDate: string;
-  endDate: string;
-  location: string;
-  country?: string;
-  latLng?: [number, number];
-}
 
 function guessLanguageForRegion(regionCode: string) {
   // "und" stands for "undetermined language" — like ICU's fallback
@@ -57,13 +47,19 @@ function slugify(s: string, locale: string) {
 function Editor() {
   const { i18n, t } = useLingui();
 
-  const form = useForm<Entry>({
+  const form = useForm<{
+    prefix: string;
+    suffix: string;
+    dates: [string | null, string | null];
+    location: string;
+    country?: string;
+    latLng?: [number, number];
+  }>({
     mode: "controlled",
     initialValues: {
       prefix: "",
       suffix: "",
-      startDate: "",
-      endDate: "",
+      dates: [null, null],
       location: "",
       country: undefined,
       latLng: undefined,
@@ -74,10 +70,14 @@ function Editor() {
         value == "" ? <Trans>Prefix must not be empty.</Trans> : null,
       suffix: (value) =>
         value == "" ? <Trans>Suffix must not be empty.</Trans> : null,
-      startDate: (value) =>
-        value == "" ? <Trans>Start date must be set.</Trans> : null,
-      endDate: (value) =>
-        value == "" ? <Trans>End date must be set.</Trans> : null,
+      dates: ([start, end]) =>
+        start == null && end == null ? (
+          <Trans>Dates must be set.</Trans>
+        ) : start == null ? (
+          <Trans>Start date must be set.</Trans>
+        ) : end == null ? (
+          <Trans>End date must be set.</Trans>
+        ) : null,
       location: (value) =>
         value == "" ? <Trans>Location must be set.</Trans> : null,
     },
@@ -85,8 +85,7 @@ function Editor() {
 
   const prefixInputProps = form.getInputProps("prefix");
   const suffixInputProps = form.getInputProps("suffix");
-  const startDateInputProps = form.getInputProps("startDate");
-  const endDateInputProps = form.getInputProps("endDate");
+  const datesInputProps = form.getInputProps("dates");
   const locationInputProps = form.getInputProps("location");
 
   const FORMAT: Intl.DateTimeFormatOptions = {
@@ -97,14 +96,9 @@ function Editor() {
   };
 
   const refDate = new Date();
-  const start =
-    startDateInputProps.value != ""
-      ? parseDate(startDateInputProps.value, "yyyy-MM-dd", refDate)
-      : null;
-  const end =
-    endDateInputProps.value != ""
-      ? parseDate(endDateInputProps.value, "yyyy-MM-dd", refDate)
-      : null;
+  const [start, end] = datesInputProps.value.map((d) =>
+    d != null ? parseDate(d, "yyyy-MM-dd", refDate) : null,
+  );
 
   const dateValue =
     start != null || end != null
@@ -125,14 +119,16 @@ function Editor() {
         : "en",
     );
 
+    const [startDate, endDate] = values.dates;
+
     return `\
 // In ${slug}.json, add:
 ${JSON.stringify(
   {
     id: start != null ? getYear(start).toString() : "",
     name: `${values.prefix} ${values.suffix}`,
-    startDate: values.startDate,
-    endDate: values.endDate,
+    startDate: startDate ?? "",
+    endDate: endDate ?? "",
     location: values.location,
     country: values.country,
     latLng: values.latLng,
@@ -184,27 +180,18 @@ ${JSON.stringify(
           size="sm"
           mb="xs"
           label={<Trans>Dates</Trans>}
-          error={
-            startDateInputProps.error != null ||
-            endDateInputProps.error != null ? (
-              <>
-                {startDateInputProps.error} {endDateInputProps.error}
-              </>
-            ) : null
-          }
+          error={datesInputProps.error}
         >
           <TextInput
             mb="sm"
             leftSection={<IconCalendar size={16} />}
             value={dateValue}
-            error={
-              startDateInputProps.error != null ||
-              endDateInputProps.error != null
-            }
+            error={datesInputProps.error != null}
             readOnly
           />
           <Center>
             <DatePicker
+              {...datesInputProps}
               type="range"
               numberOfColumns={3}
               columnsToScroll={1}
@@ -215,24 +202,6 @@ ${JSON.stringify(
               weekdayFormat={(date) =>
                 i18n.date(new Date(date), { weekday: "narrow" })
               }
-              defaultValue={[
-                startDateInputProps.defaultValue,
-                endDateInputProps.defaultValue,
-              ]}
-              value={[startDateInputProps.value, endDateInputProps.value]}
-              onChange={(value) => {
-                const [startDate, endDate] = value;
-                startDateInputProps.onChange(startDate ?? "");
-                endDateInputProps.onChange(endDate ?? "");
-              }}
-              onFocus={() => {
-                startDateInputProps.onFocus();
-                endDateInputProps.onFocus();
-              }}
-              onBlur={() => {
-                startDateInputProps.onBlur();
-                endDateInputProps.onBlur();
-              }}
             />
           </Center>
         </Input.Wrapper>
@@ -271,19 +240,37 @@ ${JSON.stringify(
 
 const theme = createTheme({});
 
+const WEEK_INFO = (() => {
+  const locale = new Intl.Locale(navigator.language);
+  return (
+    (
+      locale as {
+        getWeekInfo?(): { firstDay: number; weekend: number[] };
+      }
+    ).getWeekInfo?.() ?? { firstDay: 7, weekend: [6, 7] }
+  );
+})();
+
 export default function App() {
   return (
     <I18nProvider i18n={i18n}>
       <MantineProvider theme={theme}>
-        <Suspense
-          fallback={
-            <Center>
-              <Loader />
-            </Center>
-          }
+        <DatesProvider
+          settings={{
+            firstDayOfWeek: (WEEK_INFO.firstDay % 7) as DayOfWeek,
+            weekendDays: WEEK_INFO.weekend.map((d) => (d % 7) as DayOfWeek),
+          }}
         >
-          <Editor />
-        </Suspense>
+          <Suspense
+            fallback={
+              <Center>
+                <Loader />
+              </Center>
+            }
+          >
+            <Editor />
+          </Suspense>
+        </DatesProvider>
       </MantineProvider>
     </I18nProvider>
   );
