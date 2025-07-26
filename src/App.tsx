@@ -21,12 +21,49 @@ import {
   IconCalendar,
   IconMapPin,
 } from "@tabler/icons-react";
-import { getYear, parse as parseDate } from "date-fns";
-import { Suspense, useMemo } from "react";
+import {
+  addDays,
+  format as formatDate,
+  getDate,
+  getDay,
+  getMonth,
+  getYear,
+  parse as parseDate,
+  startOfMonth,
+  subMonths,
+} from "date-fns";
+import { Suspense, use, useMemo } from "react";
 import { messages } from "./locales/en/messages.po";
 import PlacePicker from "./PlacePicker";
 
 i18n.loadAndActivate({ locale: "en", messages });
+
+const QUERY_PARAMS = new URLSearchParams(window.location.search);
+const conPromise = (async () => {
+  const con = QUERY_PARAMS.get("con");
+  if (con == null) {
+    return null;
+  }
+  const resp = await fetch(`https://data.cons.fyi/cons/${con}.json`);
+  if (!resp.ok) {
+    throw resp;
+  }
+  return (await resp.json()) as {
+    name: string;
+    url: string;
+    events: {
+      id: string;
+      name: string;
+      startDate: string;
+      endDate: string;
+      location: string;
+      country?: string;
+      latLng?: [number, number];
+      sources?: string[];
+      canceled?: true;
+    }[];
+  };
+})();
 
 function guessLanguageForRegion(regionCode: string) {
   // "und" stands for "undetermined language" — like ICU's fallback
@@ -44,38 +81,92 @@ function slugify(s: string, locale: string) {
     .join("-");
 }
 
-function Editor() {
-  const { i18n, t } = useLingui();
+function getWeekOfMonth(date: Date) {
+  return Math.ceil((getDate(date) + getDay(startOfMonth(date))) / 7);
+}
 
-  const form = useForm<{
+function getWeekdayInNthWeek(
+  year: number,
+  month: number,
+  weekday: DayOfWeek,
+  week: number,
+) {
+  const firstOfMonth = new Date(year, month, 1);
+  const firstDayOfWeek = getDay(firstOfMonth);
+  return addDays(firstOfMonth, -firstDayOfWeek + weekday + (week - 1) * 7);
+}
+
+function addYearSameWeekday(date: Date) {
+  return getWeekdayInNthWeek(
+    getYear(date) + 1,
+    getMonth(date),
+    getDay(date) as DayOfWeek,
+    getWeekOfMonth(date),
+  );
+}
+
+function Editor() {
+  const con = use(conPromise);
+
+  let initialValues: {
     prefix: string;
     suffix: string;
     dates: [string | null, string | null];
     location: string;
     country?: string;
     latLng?: [number, number];
-  }>({
+  } = {
+    prefix: "",
+    suffix: "",
+    dates: [null, null],
+    location: "",
+    country: undefined,
+    latLng: undefined,
+  };
+  if (con != null && con.events.length > 0) {
+    const event = con.events[con.events.length - 1];
+
+    let suffix = (getYear(new Date(event.startDate)) + 1).toString();
+    const match = event.name.match(/(\d+)$/);
+    if (match != null) {
+      suffix = (parseInt(match[1], 10) + 1).toString();
+    }
+
+    const refDate = new Date();
+    const [startDate, endDate] = [event.startDate, event.endDate].map((d) =>
+      parseDate(d, "yyyy-MM-dd", refDate),
+    );
+
+    initialValues = {
+      ...initialValues,
+      prefix: con.name,
+      suffix,
+      dates: [addYearSameWeekday(startDate), addYearSameWeekday(endDate)].map(
+        (d) => formatDate(d, "yyyy-MM-dd"),
+      ) as [string, string],
+      location: event.location,
+      country: event.country,
+      latLng: event.latLng,
+    };
+  }
+
+  const { i18n, t } = useLingui();
+
+  const form = useForm({
     mode: "controlled",
-    initialValues: {
-      prefix: "",
-      suffix: "",
-      dates: [null, null],
-      location: "",
-      country: undefined,
-      latLng: undefined,
-    },
+    initialValues,
     validateInputOnChange: true,
     validate: {
       prefix: (value) =>
         value == "" ? <Trans>Prefix must not be empty.</Trans> : null,
       suffix: (value) =>
         value == "" ? <Trans>Suffix must not be empty.</Trans> : null,
-      dates: ([start, end]) =>
-        start == null && end == null ? (
+      dates: ([startDate, endDate]) =>
+        startDate == null && endDate == null ? (
           <Trans>Dates must be set.</Trans>
-        ) : start == null ? (
+        ) : startDate == null ? (
           <Trans>Start date must be set.</Trans>
-        ) : end == null ? (
+        ) : endDate == null ? (
           <Trans>End date must be set.</Trans>
         ) : null,
       location: (value) =>
@@ -96,15 +187,15 @@ function Editor() {
   };
 
   const refDate = new Date();
-  const [start, end] = datesInputProps.value.map((d) =>
+  const [startDate, endDate] = datesInputProps.value.map((d: string | null) =>
     d != null ? parseDate(d, "yyyy-MM-dd", refDate) : null,
-  );
+  ) as [Date | null, Date | null];
 
   const dateValue =
-    start != null || end != null
+    startDate != null || endDate != null
       ? t({
           // eslint-disable-next-line no-irregular-whitespace
-          message: `${start != null ? i18n.date(start, FORMAT) : ""} – ${end != null ? i18n.date(end, FORMAT) : ""}`,
+          message: `${startDate != null ? i18n.date(startDate, FORMAT) : ""} – ${endDate != null ? i18n.date(endDate, FORMAT) : ""}`,
           context: "date range",
         })
       : "";
@@ -125,7 +216,7 @@ function Editor() {
 // In ${slug}.json, add:
 ${JSON.stringify(
   {
-    id: start != null ? getYear(start).toString() : "",
+    id: startDate != null ? getYear(startDate).toString() : "",
     name: `${values.prefix} ${values.suffix}`,
     startDate: startDate ?? "",
     endDate: endDate ?? "",
@@ -137,7 +228,7 @@ ${JSON.stringify(
   "  ",
 )}\
 `;
-  }, [start, form]);
+  }, [form]);
 
   return (
     <Flex w="100%" gap="xs" p="xs">
@@ -158,12 +249,6 @@ ${JSON.stringify(
                 {prefixInputProps.error} {suffixInputProps.error}
               </>
             ) : null
-          }
-          description={
-            <Trans>
-              Include the year or number of the convention, e.g. “RainFurrest
-              2016” or “Eurofurence 29”.
-            </Trans>
           }
         >
           <Flex w="100%">
@@ -192,15 +277,21 @@ ${JSON.stringify(
           <Center>
             <DatePicker
               {...datesInputProps}
+              date={startDate != null ? subMonths(startDate, 1) : undefined}
               type="range"
               numberOfColumns={3}
               columnsToScroll={1}
               allowSingleDateInRange
               monthLabelFormat={(date) =>
-                i18n.date(new Date(date), { month: "long", year: "numeric" })
+                i18n.date(parseDate(date, "yyyy-MM-dd", refDate), {
+                  month: "long",
+                  year: "numeric",
+                })
               }
               weekdayFormat={(date) =>
-                i18n.date(new Date(date), { weekday: "narrow" })
+                i18n.date(parseDate(date, "yyyy-MM-dd", refDate), {
+                  weekday: "narrow",
+                })
               }
             />
           </Center>

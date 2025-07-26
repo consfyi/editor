@@ -26,7 +26,7 @@ export interface Place {
 }
 
 const GOOGLE_MAPS_LOADER = new GoogleMapsLoader({
-  apiKey: import.meta.env.GOOGLE_MAPS_API_KEY,
+  apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
 });
 
 const placesLibraryPromise = GOOGLE_MAPS_LOADER.importLibrary("places");
