@@ -2,6 +2,8 @@ import { i18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
+  ActionIcon,
+  Box,
   Center,
   Code,
   createTheme,
@@ -10,6 +12,7 @@ import {
   Loader,
   MantineProvider,
   TextInput,
+  Tooltip,
 } from "@mantine/core";
 import "@mantine/core/styles.css";
 import { DatePicker, DatesProvider, type DayOfWeek } from "@mantine/dates";
@@ -19,6 +22,8 @@ import {
   Icon123,
   IconAbc,
   IconCalendar,
+  IconCopy,
+  IconCopyCheck,
   IconMapPin,
   IconWorld,
 } from "@tabler/icons-react";
@@ -36,6 +41,7 @@ import {
 import { Suspense, use, useMemo } from "react";
 import { messages } from "./locales/en/messages.po";
 import PlacePicker from "./PlacePicker";
+import { useClipboard } from "@mantine/hooks";
 
 i18n.loadAndActivate({ locale: "en", messages });
 
@@ -234,10 +240,12 @@ function Editor() {
     );
   }, [form]);
 
+  const clipboard = useClipboard();
+
   return (
     <Flex w="100%" gap="xs" p="xs">
       <form
-        style={{ width: "50%" }}
+        style={{ width: "800px" }}
         onSubmit={form.onSubmit((values) => {
           console.log(values);
         })}
@@ -287,9 +295,9 @@ function Editor() {
           <Center>
             <DatePicker
               {...datesInputProps}
-              date={startDate != null ? subMonths(startDate, 1) : undefined}
+              date={startDate ?? undefined}
               type="range"
-              numberOfColumns={3}
+              numberOfColumns={2}
               columnsToScroll={1}
               allowSingleDateInRange
               monthLabelFormat={(date) =>
@@ -332,9 +340,40 @@ function Editor() {
           }}
         />
       </form>
-      <Code style={{ flexGrow: 1 }} block>
-        {raw}
-      </Code>
+      <Box style={{ flexGrow: 1 }}>
+        <Code
+          h="100%"
+          block
+          style={{ wordWrap: "break-word", whiteSpace: "pre-wrap" }}
+        >
+          {raw}
+        </Code>
+        <Tooltip
+          label={
+            clipboard.copied ? (
+              <Trans>Copied!</Trans>
+            ) : (
+              <Trans>Copy to clipboard</Trans>
+            )
+          }
+        >
+          <ActionIcon
+            pos="absolute"
+            right={16}
+            top={16}
+            variant="default"
+            onClick={() => {
+              clipboard.copy(raw);
+            }}
+          >
+            {clipboard.copied ? (
+              <IconCopyCheck size={16} />
+            ) : (
+              <IconCopy size={16} />
+            )}
+          </ActionIcon>
+        </Tooltip>
+      </Box>
     </Flex>
   );
 }
