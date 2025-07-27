@@ -20,6 +20,7 @@ import {
   IconAbc,
   IconCalendar,
   IconMapPin,
+  IconWorld,
 } from "@tabler/icons-react";
 import {
   addDays,
@@ -50,10 +51,10 @@ const conPromise = (async () => {
   }
   return (await resp.json()) as {
     name: string;
-    url: string;
     events: {
       id: string;
       name: string;
+      url: string;
       startDate: string;
       endDate: string;
       location: string;
@@ -112,6 +113,7 @@ function Editor() {
     prefix: string;
     suffix: string;
     dates: [string | null, string | null];
+    url: string;
     location: string;
     country?: string;
     latLng?: [number, number];
@@ -119,6 +121,7 @@ function Editor() {
     prefix: "",
     suffix: "",
     dates: [null, null],
+    url: "",
     location: "",
     country: undefined,
     latLng: undefined,
@@ -141,6 +144,7 @@ function Editor() {
       ...initialValues,
       prefix: con.name,
       suffix,
+      url: event.url,
       dates: [addYearSameWeekday(startDate), addYearSameWeekday(endDate)].map(
         (d) => formatDate(d, "yyyy-MM-dd"),
       ) as [string, string],
@@ -161,6 +165,8 @@ function Editor() {
         value == "" ? <Trans>Prefix must not be empty.</Trans> : null,
       suffix: (value) =>
         value == "" ? <Trans>Suffix must not be empty.</Trans> : null,
+      url: (value) =>
+        value == "" ? <Trans>Website must not be empty.</Trans> : null,
       dates: ([startDate, endDate]) =>
         startDate == null && endDate == null ? (
           <Trans>Dates must be set.</Trans>
@@ -212,22 +218,20 @@ function Editor() {
 
     const [startDate, endDate] = values.dates;
 
-    return `\
-// In ${slug}.json, add:
-${JSON.stringify(
-  {
-    id: startDate != null ? getYear(startDate).toString() : "",
-    name: `${values.prefix} ${values.suffix}`,
-    startDate: startDate ?? "",
-    endDate: endDate ?? "",
-    location: values.location,
-    country: values.country,
-    latLng: values.latLng,
-  },
-  null,
-  "  ",
-)}\
-`;
+    return JSON.stringify(
+      {
+        id: `${slug}-${startDate != null ? getYear(startDate).toString() : ""}`,
+        name: `${values.prefix} ${values.suffix}`,
+        url: values.url,
+        startDate: startDate ?? "",
+        endDate: endDate ?? "",
+        location: values.location,
+        country: values.country,
+        latLng: values.latLng,
+      },
+      null,
+      "  ",
+    );
   }, [form]);
 
   return (
@@ -260,7 +264,13 @@ ${JSON.stringify(
             <Input {...suffixInputProps} leftSection={<Icon123 size={16} />} />
           </Flex>
         </Input.Wrapper>
-
+        <TextInput
+          {...form.getInputProps("url")}
+          size="sm"
+          mb="xs"
+          label={<Trans>Website</Trans>}
+          leftSection={<IconWorld size={16} />}
+        />
         <Input.Wrapper
           size="sm"
           mb="xs"
