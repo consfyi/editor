@@ -18,6 +18,7 @@ import "@mantine/core/styles.css";
 import { DatePicker, DatesProvider, type DayOfWeek } from "@mantine/dates";
 import "@mantine/dates/styles.css";
 import { useForm } from "@mantine/form";
+import { useClipboard } from "@mantine/hooks";
 import {
   Icon123,
   IconAbc,
@@ -36,12 +37,10 @@ import {
   getYear,
   parse as parseDate,
   startOfMonth,
-  subMonths,
 } from "date-fns";
 import { Suspense, use, useMemo } from "react";
 import { messages } from "./locales/en/messages.po";
 import PlacePicker from "./PlacePicker";
-import { useClipboard } from "@mantine/hooks";
 
 i18n.loadAndActivate({ locale: "en", messages });
 
@@ -349,6 +348,7 @@ function Editor() {
           {raw}
         </Code>
         <Tooltip
+          position="left"
           label={
             clipboard.copied ? (
               <Trans>Copied!</Trans>
