@@ -295,7 +295,7 @@ function Editor() {
           <Center>
             <DatePicker
               {...datesInputProps}
-              date={startDate ?? undefined}
+              defaultDate={startDate ?? undefined}
               type="range"
               numberOfColumns={2}
               columnsToScroll={1}
