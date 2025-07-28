@@ -140,34 +140,35 @@ function Editor() {
     latLng: undefined,
   };
   if (templateCon != null && templateCon.events.length > 0) {
-    const event = templateCon.events[templateCon.events.length - 1];
+    const templateEvent = templateCon.events[templateCon.events.length - 1];
 
-    let suffix = (getYear(new Date(event.startDate)) + 1).toString();
-    const match = event.name.match(/(\d+)$/);
+    let suffix = (getYear(new Date(templateEvent.startDate)) + 1).toString();
+    const match = templateEvent.name.match(/(\d+)$/);
     if (match != null) {
       suffix = (parseInt(match[1], 10) + 1).toString();
     }
 
     const refDate = new Date();
-    const [startDate, endDate] = [event.startDate, event.endDate].map((d) =>
-      parseDate(d, "yyyy-MM-dd", refDate),
-    );
+    const [startDate, endDate] = [
+      templateEvent.startDate,
+      templateEvent.endDate,
+    ].map((d) => parseDate(d, "yyyy-MM-dd", refDate));
 
     initialValues = {
       ...initialValues,
       prefix: templateCon.name,
       suffix,
-      url: event.url,
+      url: templateEvent.url,
       dates: [addYearSameWeekday(startDate), addYearSameWeekday(endDate)].map(
         (d) => formatDate(d, "yyyy-MM-dd"),
       ) as [string, string],
-      location: event.location,
-      country: event.country,
-      latLng: event.latLng,
+      location: templateEvent.location,
+      country: templateEvent.country,
+      latLng: templateEvent.latLng,
     };
   }
 
-  const { i18n, t } = useLingui();
+  const { i18n } = useLingui();
 
   const form = useForm({
     mode: "controlled",
@@ -221,12 +222,21 @@ function Editor() {
 
     const [startDate, endDate] = values.dates;
 
+    const idSuffix =
+      endDate != null &&
+      getYear(parseDate(endDate, "yyyy-MM-dd", refDate)).toString() ==
+        values.suffix
+        ? values.suffix
+        : startDate != null
+          ? getYear(startDate).toString()
+          : "";
+
     return JSON.stringify(
       {
         name: values.prefix,
         events: [
           {
-            id: `${conId}-${startDate != null ? getYear(startDate).toString() : ""}`,
+            id: `${conId}-${idSuffix}`,
             name: `${values.prefix} ${values.suffix}`,
             url: values.url,
             startDate: startDate ?? "",
