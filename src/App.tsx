@@ -3,7 +3,6 @@ import { I18nProvider } from "@lingui/react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
   ActionIcon,
-  Alert,
   Box,
   Center,
   Code,
@@ -35,6 +34,8 @@ import {
   IconMapPin,
   IconWorld,
 } from "@tabler/icons-react";
+import addFormats from "ajv-formats";
+import Ajv, { type ErrorObject } from "ajv/dist/2020";
 import {
   addDays,
   format as formatDate,
@@ -48,10 +49,76 @@ import {
 import { Suspense, use, useMemo } from "react";
 import { messages } from "./locales/en/messages.po";
 import PlacePicker from "./PlacePicker";
-import Ajv from "ajv/dist/2020";
-import addFormats from "ajv-formats";
 
 i18n.loadAndActivate({ locale: "en", messages });
+
+function myStringifyWithErrors(
+  value: unknown,
+  errors: ErrorObject[],
+  space = 2,
+): string {
+  const errorsByPath: Record<string, ErrorObject[]> = {};
+  for (const error of errors) {
+    (errorsByPath[error.instancePath] ??= []).push(error);
+  }
+
+  const indent = " ".repeat(space);
+  const seen = new WeakSet();
+
+  function stringify(parent: string, value: unknown, depth: number): string {
+    if (Array.isArray(value)) {
+      if (value.length === 0) return "[]";
+      const inner = value
+        .map((v, i) => {
+          const path = `${parent}/${i}`;
+          const errors = errorsByPath[path] ?? [];
+          return [
+            ...errors.map((e) => `// ERROR: ${i} ${e.message}`),
+            stringify(path, v, depth + 1),
+          ]
+            .map((v) => `${indent.repeat(depth + 1)}${v}`)
+            .join("\n");
+        })
+        .join(",\n");
+      return `[\n${inner}\n${indent.repeat(depth)}]`;
+    }
+
+    if (value && typeof value === "object") {
+      if (seen.has(value)) {
+        throw new TypeError("Converting circular structure to JSON");
+      }
+      seen.add(value);
+
+      const keys = Object.keys(value);
+      if (keys.length === 0) return "{}";
+      const inner = keys
+        .map((k) => {
+          const path = `${parent}/${k}`;
+          const errors = errorsByPath[path] ?? [];
+          const val = stringify(
+            path,
+            value[k as keyof typeof value],
+            depth + 1,
+          );
+          if (val !== undefined) {
+            return [
+              ...errors.map((e) => `// ERROR: ${k} ${e.message}`),
+              `"${k}": ${val}`,
+            ]
+              .map((v) => `${indent.repeat(depth + 1)}${v}`)
+              .join("\n");
+          }
+        })
+        .filter(Boolean)
+        .join(",\n");
+      return `{\n${inner}\n${indent.repeat(depth)}}`;
+    }
+
+    return JSON.stringify(value);
+  }
+
+  return stringify("", value, 0);
+}
 
 const SCHEMA = await (async () => {
   const resp = await fetch(
@@ -197,7 +264,6 @@ function Editor() {
   const prefixInputProps = form.getInputProps("prefix");
   const suffixInputProps = form.getInputProps("suffix");
   const datesInputProps = form.getInputProps("dates");
-  const locationInputProps = form.getInputProps("location");
 
   const refDate = useMemo(() => new Date(), []);
   const [startDate, endDate] = datesInputProps.value.map((d: string | null) =>
@@ -254,14 +320,16 @@ function Editor() {
     };
   }, [templateCon, conId, form, refDate]);
 
-  const raw = useMemo(() => JSON.stringify(payload, null, "  "), [payload]);
-
   const validationErrors = useMemo(() => {
     const validate = makeValidate();
     validate(payload);
     return validate.errors ?? [];
   }, [payload]);
-  console.log(validationErrors);
+
+  const raw = useMemo(
+    () => myStringifyWithErrors(payload, validationErrors),
+    [validationErrors, payload],
+  );
 
   const clipboard = useClipboard();
 
@@ -380,7 +448,19 @@ function Editor() {
             block
             style={{ wordWrap: "break-word", whiteSpace: "pre-wrap" }}
           >
-            {raw}
+            {raw.split("\n").map((v, i) => (
+              <span
+                key={i}
+                style={{
+                  color: v.match(/^ *\/\/ ERROR:/)
+                    ? "var(--mantine-color-error)"
+                    : undefined,
+                }}
+              >
+                {v}
+                {"\n"}
+              </span>
+            ))}
           </Code>
           <Tooltip
             position="left"
@@ -409,23 +489,6 @@ function Editor() {
             </ActionIcon>
           </Tooltip>
         </Box>
-        {validationErrors.length > 0 ? (
-          <Alert color="red">
-            <ul
-              style={{
-                marginTop: 0,
-                marginBottom: 0,
-                paddingLeft: "var(--mantine-spacing-lg)",
-              }}
-            >
-              {validationErrors.map((err, i) => (
-                <li key={i}>
-                  {err.instancePath}: {err.message}
-                </li>
-              ))}
-            </ul>
-          </Alert>
-        ) : null}
       </Flex>
     </Flex>
   );
