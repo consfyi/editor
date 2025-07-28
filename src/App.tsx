@@ -25,6 +25,7 @@ import {
   IconCalendar,
   IconCopy,
   IconCopyCheck,
+  IconFile,
   IconMapPin,
   IconWorld,
 } from "@tabler/icons-react";
@@ -67,6 +68,8 @@ const conPromise = (async () => {
       latLng?: [number, number];
       sources?: string[];
       canceled?: true;
+      conId: string;
+      timezone?: string;
     }[];
   };
 })();
@@ -112,7 +115,7 @@ function addYearSameWeekday(date: Date) {
 }
 
 function Editor() {
-  const con = use(conPromise);
+  const templateCon = use(conPromise);
 
   let initialValues: {
     prefix: string;
@@ -131,8 +134,8 @@ function Editor() {
     country: undefined,
     latLng: undefined,
   };
-  if (con != null && con.events.length > 0) {
-    const event = con.events[con.events.length - 1];
+  if (templateCon != null && templateCon.events.length > 0) {
+    const event = templateCon.events[templateCon.events.length - 1];
 
     let suffix = (getYear(new Date(event.startDate)) + 1).toString();
     const match = event.name.match(/(\d+)$/);
@@ -147,7 +150,7 @@ function Editor() {
 
     initialValues = {
       ...initialValues,
-      prefix: con.name,
+      prefix: templateCon.name,
       suffix,
       url: event.url,
       dates: [addYearSameWeekday(startDate), addYearSameWeekday(endDate)].map(
@@ -211,33 +214,50 @@ function Editor() {
         })
       : "";
 
+  const conId = useMemo(
+    () =>
+      slugify(
+        form.values.prefix,
+        form.values.country != undefined
+          ? guessLanguageForRegion(form.values.country)
+          : "en",
+      ),
+    [form.values.country, form.values.prefix],
+  );
+
   const raw = useMemo(() => {
     const values = form.getValues();
-
-    const slug = slugify(
-      values.prefix,
-      values.country != undefined
-        ? guessLanguageForRegion(values.country)
-        : "en",
-    );
 
     const [startDate, endDate] = values.dates;
 
     return JSON.stringify(
       {
-        id: `${slug}-${startDate != null ? getYear(startDate).toString() : ""}`,
-        name: `${values.prefix} ${values.suffix}`,
-        url: values.url,
-        startDate: startDate ?? "",
-        endDate: endDate ?? "",
-        location: values.location,
-        country: values.country,
-        latLng: values.latLng,
+        name: values.prefix,
+        events: [
+          {
+            id: `${conId}-${startDate != null ? getYear(startDate).toString() : ""}`,
+            name: `${values.prefix} ${values.suffix}`,
+            url: values.url,
+            startDate: startDate ?? "",
+            endDate: endDate ?? "",
+            location: values.location,
+            country: values.country,
+            latLng: values.latLng,
+          },
+          ...(templateCon != null
+            ? templateCon.events.map(
+                (
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  { timezone, conId, ...event },
+                ) => event,
+              )
+            : []),
+        ],
       },
       null,
       "  ",
     );
-  }, [form]);
+  }, [templateCon, conId, form]);
 
   const clipboard = useClipboard();
 
@@ -339,41 +359,49 @@ function Editor() {
           }}
         />
       </form>
-      <Box style={{ flexGrow: 1 }}>
-        <Code
-          h="100%"
-          block
-          style={{ wordWrap: "break-word", whiteSpace: "pre-wrap" }}
-        >
-          {raw}
-        </Code>
-        <Tooltip
-          position="left"
-          label={
-            clipboard.copied ? (
-              <Trans>Copied!</Trans>
-            ) : (
-              <Trans>Copy to clipboard</Trans>
-            )
-          }
-        >
-          <ActionIcon
-            pos="absolute"
-            right={16}
-            top={16}
-            variant="default"
-            onClick={() => {
-              clipboard.copy(raw);
-            }}
+      <Flex style={{ flexGrow: 1, flexDirection: "column" }}>
+        <TextInput
+          readOnly
+          value={`${conId}.json`}
+          size="xs"
+          leftSection={<IconFile size={14} />}
+        />
+        <Box style={{ position: "relative", flexGrow: 1 }}>
+          <Code
+            h="100%"
+            block
+            style={{ wordWrap: "break-word", whiteSpace: "pre-wrap" }}
           >
-            {clipboard.copied ? (
-              <IconCopyCheck size={16} />
-            ) : (
-              <IconCopy size={16} />
-            )}
-          </ActionIcon>
-        </Tooltip>
-      </Box>
+            {raw}
+          </Code>
+          <Tooltip
+            position="left"
+            label={
+              clipboard.copied ? (
+                <Trans>Copied!</Trans>
+              ) : (
+                <Trans>Copy to clipboard</Trans>
+              )
+            }
+          >
+            <ActionIcon
+              pos="absolute"
+              right={6}
+              top={6}
+              variant="default"
+              onClick={() => {
+                clipboard.copy(raw);
+              }}
+            >
+              {clipboard.copied ? (
+                <IconCopyCheck size={16} />
+              ) : (
+                <IconCopy size={16} />
+              )}
+            </ActionIcon>
+          </Tooltip>
+        </Box>
+      </Flex>
     </Flex>
   );
 }
