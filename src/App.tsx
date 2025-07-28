@@ -139,12 +139,12 @@ function makeValidate() {
 }
 
 const QUERY_PARAMS = new URLSearchParams(window.location.search);
-const conPromise = (async () => {
-  const con = QUERY_PARAMS.get("con");
-  if (con == null) {
+const seriesPromise = (async () => {
+  const seriesId = QUERY_PARAMS.get("seriesId");
+  if (seriesId == null) {
     return null;
   }
-  const resp = await fetch(`https://data.cons.fyi/cons/${con}.json`);
+  const resp = await fetch(`https://data.cons.fyi/series/${seriesId}.json`);
   if (!resp.ok) {
     return null;
   }
@@ -161,7 +161,7 @@ const conPromise = (async () => {
       latLng?: [number, number];
       sources?: string[];
       canceled?: true;
-      conId: string;
+      seriesId: string;
       timezone?: string;
     }[];
   };
@@ -208,7 +208,7 @@ function addYearSameWeekday(date: Date) {
 }
 
 function Editor() {
-  const templateCon = use(conPromise);
+  const templateSeries = use(seriesPromise);
 
   let initialValues: {
     prefix: string;
@@ -227,8 +227,9 @@ function Editor() {
     country: undefined,
     latLng: undefined,
   };
-  if (templateCon != null && templateCon.events.length > 0) {
-    const templateEvent = templateCon.events[templateCon.events.length - 1];
+  if (templateSeries != null && templateSeries.events.length > 0) {
+    const templateEvent =
+      templateSeries.events[templateSeries.events.length - 1];
 
     let suffix = (getYear(new Date(templateEvent.startDate)) + 1).toString();
     const match = templateEvent.name.match(/(\d+)$/);
@@ -244,7 +245,7 @@ function Editor() {
 
     initialValues = {
       ...initialValues,
-      prefix: templateCon.name,
+      prefix: templateSeries.name,
       suffix,
       url: templateEvent.url,
       dates: [addYearSameWeekday(startDate), addYearSameWeekday(endDate)].map(
@@ -283,7 +284,7 @@ function Editor() {
     [form.values.country, form.values.prefix],
   );
 
-  const payload = useMemo(() => {
+  const outputSeries = useMemo(() => {
     const values = form.getValues();
 
     const [startDate, endDate] = values.dates;
@@ -313,27 +314,27 @@ function Editor() {
           country: values.country,
           latLng: values.latLng,
         },
-        ...(templateCon != null
-          ? templateCon.events.map(
+        ...(templateSeries != null
+          ? templateSeries.events.map(
               (
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                { timezone, conId, ...event },
+                { timezone, seriesId: conId, ...event },
               ) => event,
             )
           : []),
       ],
     };
-  }, [templateCon, conId, form, refDate]);
+  }, [templateSeries, conId, form, refDate]);
 
   const validationErrors = useMemo(() => {
     const validate = makeValidate();
-    validate(payload);
+    validate(outputSeries);
     return validate.errors ?? [];
-  }, [payload]);
+  }, [outputSeries]);
 
   const raw = useMemo(
-    () => myStringifyWithErrors(payload, validationErrors),
-    [validationErrors, payload],
+    () => myStringifyWithErrors(outputSeries, validationErrors),
+    [validationErrors, outputSeries],
   );
 
   const clipboard = useClipboard();
