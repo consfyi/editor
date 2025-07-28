@@ -15,7 +15,12 @@ import {
   Tooltip,
 } from "@mantine/core";
 import "@mantine/core/styles.css";
-import { DatePicker, DatesProvider, type DayOfWeek } from "@mantine/dates";
+import {
+  DateInput,
+  DatePicker,
+  DatesProvider,
+  type DayOfWeek,
+} from "@mantine/dates";
 import "@mantine/dates/styles.css";
 import { useForm } from "@mantine/form";
 import { useClipboard } from "@mantine/hooks";
@@ -182,6 +187,8 @@ function Editor() {
           <Trans>Start date must be set.</Trans>
         ) : endDate == null ? (
           <Trans>End date must be set.</Trans>
+        ) : startDate > endDate ? (
+          <Trans>Start date must before or on end date.</Trans>
         ) : null,
       location: (value) =>
         value == "" ? <Trans>Location must be set.</Trans> : null,
@@ -193,26 +200,10 @@ function Editor() {
   const datesInputProps = form.getInputProps("dates");
   const locationInputProps = form.getInputProps("location");
 
-  const FORMAT: Intl.DateTimeFormatOptions = {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  };
-
   const refDate = new Date();
   const [startDate, endDate] = datesInputProps.value.map((d: string | null) =>
     d != null ? parseDate(d, "yyyy-MM-dd", refDate) : null,
   ) as [Date | null, Date | null];
-
-  const dateValue =
-    startDate != null || endDate != null
-      ? t({
-          // eslint-disable-next-line no-irregular-whitespace
-          message: `${startDate != null ? i18n.date(startDate, FORMAT) : ""} – ${endDate != null ? i18n.date(endDate, FORMAT) : ""}`,
-          context: "date range",
-        })
-      : "";
 
   const conId = useMemo(
     () =>
@@ -304,13 +295,32 @@ function Editor() {
           label={<Trans>Dates</Trans>}
           error={datesInputProps.error}
         >
-          <TextInput
-            mb="sm"
-            leftSection={<IconCalendar size={16} />}
-            value={dateValue}
-            error={datesInputProps.error != null}
-            readOnly
-          />
+          <Flex mb="xs">
+            <DateInput
+              leftSection={<IconCalendar size={16} />}
+              error={datesInputProps.error != null}
+              value={startDate}
+              valueFormat="YYYY-MM-DD"
+              onChange={(value) => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const [_, endDate] = datesInputProps.value;
+                datesInputProps.onChange([value, endDate]);
+              }}
+              style={{ flexGrow: 1 }}
+            />
+            <DateInput
+              leftSection={<IconCalendar size={16} />}
+              error={datesInputProps.error != null}
+              value={endDate}
+              valueFormat="YYYY-MM-DD"
+              onChange={(value) => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const [startDate, _] = datesInputProps.value;
+                datesInputProps.onChange([startDate, value]);
+              }}
+              style={{ flexGrow: 1 }}
+            />
+          </Flex>
           <Center>
             <DatePicker
               {...datesInputProps}
