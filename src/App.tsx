@@ -74,12 +74,12 @@ function myStringifyWithErrors(
           const errors = errorsByPath[path] ?? [];
           return [
             ...errors.map((e) => `// ERROR: ${i} ${e.message}`),
-            stringify(path, v, depth + 1),
+            `${stringify(path, v, depth + 1)}${i < value.length - 1 ? "," : ""}`,
           ]
             .map((v) => `${indent.repeat(depth + 1)}${v}`)
             .join("\n");
         })
-        .join(",\n");
+        .join("\n");
       return `[\n${inner}\n${indent.repeat(depth)}]`;
     }
 
@@ -89,28 +89,28 @@ function myStringifyWithErrors(
       }
       seen.add(value);
 
-      const keys = Object.keys(value);
-      if (keys.length === 0) return "{}";
+      const keys = Object.keys(value).filter(
+        (k) => value[k as keyof typeof value] !== undefined,
+      );
+      if (keys.length === 0) {
+        return "{}";
+      }
       const inner = keys
-        .map((k) => {
+        .map((k, i) => {
           const path = `${parent}/${k}`;
           const errors = errorsByPath[path] ?? [];
-          const val = stringify(
-            path,
-            value[k as keyof typeof value],
-            depth + 1,
-          );
-          if (val !== undefined) {
-            return [
-              ...errors.map((e) => `// ERROR: ${k} ${e.message}`),
-              `"${k}": ${val}`,
-            ]
-              .map((v) => `${indent.repeat(depth + 1)}${v}`)
-              .join("\n");
-          }
+          return [
+            ...errors.map((e) => `// ERROR: ${k} ${e.message}`),
+            `"${k}": ${stringify(
+              path,
+              value[k as keyof typeof value],
+              depth + 1,
+            )}${i < keys.length - 1 ? "," : ""}`,
+          ]
+            .map((v) => `${indent.repeat(depth + 1)}${v}`)
+            .join("\n");
         })
-        .filter(Boolean)
-        .join(",\n");
+        .join("\n");
       return `{\n${inner}\n${indent.repeat(depth)}}`;
     }
 
