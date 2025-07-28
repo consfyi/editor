@@ -13,52 +13,34 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: src/App.tsx:70
-msgid "Prefix must not be empty."
-msgstr "Prefix must not be empty."
-
-#: src/App.tsx:72
-msgid "Suffix must not be empty."
-msgstr "Suffix must not be empty."
-
-#: src/App.tsx:75
-msgid "Dates must be set."
-msgstr "Dates must be set."
-
-#: src/App.tsx:77
-msgid "Start date must be set."
-msgstr "Start date must be set."
-
-#: src/App.tsx:79
-msgid "End date must be set."
-msgstr "End date must be set."
-
-#: src/App.tsx:82
-msgid "Location must be set."
-msgstr "Location must be set."
-
-#. placeholder {0}: start != null ? i18n.date(start, FORMAT) : ""
-#. placeholder {1}: end != null ? i18n.date(end, FORMAT) : ""
-#: src/App.tsx:105
-msgctxt "date range"
-msgid "{0} – {1}"
-msgstr "{0} – {1}"
-
-#: src/App.tsx:154
+#: src/App.tsx:353
 msgid "Name"
 msgstr "Name"
 
-#: src/App.tsx:163
-msgid "Include the year or number of the convention, e.g. “RainFurrest 2016” or “Eurofurence 29”."
-msgstr "Include the year or number of the convention, e.g. “RainFurrest 2016” or “Eurofurence 29”."
+#: src/App.tsx:368
+msgid "Website"
+msgstr "Website"
 
-#: src/App.tsx:182
+#: src/App.tsx:371
 msgid "Dates"
 msgstr "Dates"
 
-#: src/App.tsx:223
+#: src/App.tsx:432
 msgid "Location"
 msgstr "Location"
+
+#. placeholder {0}: validationErrors.length
+#: src/App.tsx:475
+msgid "There are {0, plural, one {# error} other {# errors}} to resolve."
+msgstr "There are {0, plural, one {# error} other {# errors}} to resolve."
+
+#: src/App.tsx:485
+msgid "Copied!"
+msgstr "Copied!"
+
+#: src/App.tsx:487
+msgid "Copy to clipboard"
+msgstr "Copy to clipboard"
 
 #. placeholder {0}: attributions.length > 0 ? ( <Trans> Result provided by{" "} <IntlList items={attributions.map(({ provider, providerURI }) => providerURI != undefined ? ( <Anchor href={providerURI} target="_blank" key={provider}> {provider} </Anchor> ) : ( <Fragment key={provider}>provider</Fragment> ), )} /> . </Trans> ) : null
 #: src/PlacePicker.tsx:151

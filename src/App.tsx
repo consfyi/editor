@@ -1,6 +1,6 @@
 import { i18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import {
   ActionIcon,
   Box,
@@ -301,8 +301,11 @@ function Editor() {
       name: values.prefix,
       events: [
         {
-          id: `${conId}-${idSuffix}`,
-          name: `${values.prefix} ${values.suffix}`,
+          id: idSuffix != "" ? `${conId}-${idSuffix}` : conId,
+          name:
+            values.prefix != ""
+              ? `${values.prefix}${values.suffix != "" ? ` ${values.suffix}` : ""}`
+              : "",
           url: values.url,
           startDate: startDate ?? "",
           endDate: endDate ?? "",
@@ -465,9 +468,20 @@ function Editor() {
             ))}
           </Code>
           <Tooltip
+            c={validationErrors.length > 0 ? "red" : undefined}
             position="left"
             label={
-              clipboard.copied ? (
+              validationErrors.length > 0 ? (
+                <Trans>
+                  There are{" "}
+                  <Plural
+                    value={validationErrors.length}
+                    one="# error"
+                    other="# errors"
+                  />{" "}
+                  to resolve.
+                </Trans>
+              ) : clipboard.copied ? (
                 <Trans>Copied!</Trans>
               ) : (
                 <Trans>Copy to clipboard</Trans>
@@ -475,6 +489,7 @@ function Editor() {
             }
           >
             <ActionIcon
+              disabled={validationErrors.length > 0}
               pos="absolute"
               right={6}
               top={6}
