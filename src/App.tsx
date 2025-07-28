@@ -373,6 +373,7 @@ function Editor() {
           <Flex mb="xs" gap="xs">
             <DateInput
               leftSection={<IconCalendar size={16} />}
+              popoverProps={{ disabled: true }}
               value={startDate}
               valueFormat="YYYY-MM-DD"
               onChange={(value) => {
@@ -384,6 +385,7 @@ function Editor() {
             />
             <DateInput
               leftSection={<IconCalendar size={16} />}
+              popoverProps={{ disabled: true }}
               value={endDate}
               valueFormat="YYYY-MM-DD"
               onChange={(value) => {
