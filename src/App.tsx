@@ -35,6 +35,7 @@ import {
   IconWorld,
 } from "@tabler/icons-react";
 import addFormats from "ajv-formats";
+import addKeywords from "ajv-keywords";
 import Ajv, { type ErrorObject } from "ajv/dist/2020";
 import {
   addDays,
@@ -131,8 +132,9 @@ const SCHEMA = await (async () => {
 })();
 
 function makeValidate() {
-  const ajv = new Ajv({ allErrors: true });
+  const ajv = new Ajv({ allErrors: true, $data: true });
   addFormats(ajv);
+  addKeywords(ajv);
   return ajv.compile(SCHEMA);
 }
 
