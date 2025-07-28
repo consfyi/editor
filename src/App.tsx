@@ -347,7 +347,7 @@ function Editor() {
           mb="xs"
           label={<Trans>Name</Trans>}
         >
-          <Flex w="100%">
+          <Flex w="100%" gap="xs">
             <Input
               {...prefixInputProps}
               style={{ flexGrow: 1 }}
@@ -364,7 +364,7 @@ function Editor() {
           leftSection={<IconWorld size={16} />}
         />
         <Input.Wrapper size="sm" mb="xs" label={<Trans>Dates</Trans>}>
-          <Flex mb="xs">
+          <Flex mb="xs" gap="xs">
             <DateInput
               leftSection={<IconCalendar size={16} />}
               value={startDate}
