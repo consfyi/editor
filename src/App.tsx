@@ -3,6 +3,7 @@ import { I18nProvider } from "@lingui/react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
   ActionIcon,
+  Alert,
   Box,
   Center,
   Code,
@@ -47,8 +48,26 @@ import {
 import { Suspense, use, useMemo } from "react";
 import { messages } from "./locales/en/messages.po";
 import PlacePicker from "./PlacePicker";
+import Ajv from "ajv/dist/2020";
+import addFormats from "ajv-formats";
 
 i18n.loadAndActivate({ locale: "en", messages });
+
+const SCHEMA = await (async () => {
+  const resp = await fetch(
+    "https://raw.githubusercontent.com/consfyi/data/refs/heads/main/.tools/schema.json",
+  );
+  if (!resp.ok) {
+    throw resp;
+  }
+  return await resp.json();
+})();
+
+function makeValidate() {
+  const ajv = new Ajv({ allErrors: true });
+  addFormats(ajv);
+  return ajv.compile(SCHEMA);
+}
 
 const QUERY_PARAMS = new URLSearchParams(window.location.search);
 const conPromise = (async () => {
@@ -58,7 +77,7 @@ const conPromise = (async () => {
   }
   const resp = await fetch(`https://data.cons.fyi/cons/${con}.json`);
   if (!resp.ok) {
-    throw resp;
+    return null;
   }
   return (await resp.json()) as {
     name: string;
@@ -173,27 +192,6 @@ function Editor() {
   const form = useForm({
     mode: "controlled",
     initialValues,
-    validateInputOnChange: true,
-    validate: {
-      prefix: (value) =>
-        value == "" ? <Trans>Prefix must not be empty.</Trans> : null,
-      suffix: (value) =>
-        value == "" ? <Trans>Suffix must not be empty.</Trans> : null,
-      url: (value) =>
-        value == "" ? <Trans>Website must not be empty.</Trans> : null,
-      dates: ([startDate, endDate]) =>
-        startDate == null && endDate == null ? (
-          <Trans>Dates must be set.</Trans>
-        ) : startDate == null ? (
-          <Trans>Start date must be set.</Trans>
-        ) : endDate == null ? (
-          <Trans>End date must be set.</Trans>
-        ) : startDate > endDate ? (
-          <Trans>Start date must before or on end date.</Trans>
-        ) : null,
-      location: (value) =>
-        value == "" ? <Trans>Location must be set.</Trans> : null,
-    },
   });
 
   const prefixInputProps = form.getInputProps("prefix");
@@ -201,7 +199,7 @@ function Editor() {
   const datesInputProps = form.getInputProps("dates");
   const locationInputProps = form.getInputProps("location");
 
-  const refDate = new Date();
+  const refDate = useMemo(() => new Date(), []);
   const [startDate, endDate] = datesInputProps.value.map((d: string | null) =>
     d != null ? parseDate(d, "yyyy-MM-dd", refDate) : null,
   ) as [Date | null, Date | null];
@@ -217,7 +215,7 @@ function Editor() {
     [form.values.country, form.values.prefix],
   );
 
-  const raw = useMemo(() => {
+  const payload = useMemo(() => {
     const values = form.getValues();
 
     const [startDate, endDate] = values.dates;
@@ -231,34 +229,39 @@ function Editor() {
           ? getYear(startDate).toString()
           : "";
 
-    return JSON.stringify(
-      {
-        name: values.prefix,
-        events: [
-          {
-            id: `${conId}-${idSuffix}`,
-            name: `${values.prefix} ${values.suffix}`,
-            url: values.url,
-            startDate: startDate ?? "",
-            endDate: endDate ?? "",
-            location: values.location,
-            country: values.country,
-            latLng: values.latLng,
-          },
-          ...(templateCon != null
-            ? templateCon.events.map(
-                (
-                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                  { timezone, conId, ...event },
-                ) => event,
-              )
-            : []),
-        ],
-      },
-      null,
-      "  ",
-    );
-  }, [templateCon, conId, form]);
+    return {
+      name: values.prefix,
+      events: [
+        {
+          id: `${conId}-${idSuffix}`,
+          name: `${values.prefix} ${values.suffix}`,
+          url: values.url,
+          startDate: startDate ?? "",
+          endDate: endDate ?? "",
+          location: values.location,
+          country: values.country,
+          latLng: values.latLng,
+        },
+        ...(templateCon != null
+          ? templateCon.events.map(
+              (
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                { timezone, conId, ...event },
+              ) => event,
+            )
+          : []),
+      ],
+    };
+  }, [templateCon, conId, form, refDate]);
+
+  const raw = useMemo(() => JSON.stringify(payload, null, "  "), [payload]);
+
+  const validationErrors = useMemo(() => {
+    const validate = makeValidate();
+    validate(payload);
+    return validate.errors ?? [];
+  }, [payload]);
+  console.log(validationErrors);
 
   const clipboard = useClipboard();
 
@@ -275,13 +278,6 @@ function Editor() {
           size="sm"
           mb="xs"
           label={<Trans>Name</Trans>}
-          error={
-            prefixInputProps.error != null || suffixInputProps.error != null ? (
-              <>
-                {prefixInputProps.error} {suffixInputProps.error}
-              </>
-            ) : null
-          }
         >
           <Flex w="100%">
             <Input
@@ -299,16 +295,10 @@ function Editor() {
           label={<Trans>Website</Trans>}
           leftSection={<IconWorld size={16} />}
         />
-        <Input.Wrapper
-          size="sm"
-          mb="xs"
-          label={<Trans>Dates</Trans>}
-          error={datesInputProps.error}
-        >
+        <Input.Wrapper size="sm" mb="xs" label={<Trans>Dates</Trans>}>
           <Flex mb="xs">
             <DateInput
               leftSection={<IconCalendar size={16} />}
-              error={datesInputProps.error != null}
               value={startDate}
               valueFormat="YYYY-MM-DD"
               onChange={(value) => {
@@ -320,7 +310,6 @@ function Editor() {
             />
             <DateInput
               leftSection={<IconCalendar size={16} />}
-              error={datesInputProps.error != null}
               value={endDate}
               valueFormat="YYYY-MM-DD"
               onChange={(value) => {
@@ -356,7 +345,6 @@ function Editor() {
         <PlacePicker
           size="sm"
           mb="xs"
-          error={locationInputProps.error}
           clearable
           leftSection={<IconMapPin size={16} />}
           value={
@@ -379,7 +367,7 @@ function Editor() {
           }}
         />
       </form>
-      <Flex style={{ flexGrow: 1, flexDirection: "column" }}>
+      <Flex style={{ flexGrow: 1, flexDirection: "column" }} gap={6}>
         <TextInput
           readOnly
           value={`${conId}.json`}
@@ -421,6 +409,23 @@ function Editor() {
             </ActionIcon>
           </Tooltip>
         </Box>
+        {validationErrors.length > 0 ? (
+          <Alert color="red">
+            <ul
+              style={{
+                marginTop: 0,
+                marginBottom: 0,
+                paddingLeft: "var(--mantine-spacing-lg)",
+              }}
+            >
+              {validationErrors.map((err, i) => (
+                <li key={i}>
+                  {err.instancePath}: {err.message}
+                </li>
+              ))}
+            </ul>
+          </Alert>
+        ) : null}
       </Flex>
     </Flex>
   );

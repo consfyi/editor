@@ -22,6 +22,8 @@
     "@protomaps/basemaps": "^5.5.1",
     "@tabler/icons-react": "^3.34.1",
     "@vis.gl/react-maplibre": "^8.0.4",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "maplibre-gl": "^5.6.1",
