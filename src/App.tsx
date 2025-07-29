@@ -159,7 +159,6 @@ const seriesPromise = (async () => {
 })();
 
 function guessLanguageForRegion(regionCode: string) {
-  // "und" stands for "undetermined language" — like ICU's fallback
   return new Intl.Locale(`und-${regionCode}`).maximize().baseName;
 }
 
@@ -335,12 +334,7 @@ function Editor() {
 
   return (
     <Flex w="100%" gap="xs" p="xs">
-      <form
-        style={{ width: "800px" }}
-        onSubmit={form.onSubmit((values) => {
-          console.log(values);
-        })}
-      >
+      <form style={{ width: "800px" }}>
         <TextInput
           {...form.getInputProps("id")}
           leftSection={<IconKey size={16} />}
