@@ -5,6 +5,7 @@ import {
   ActionIcon,
   Box,
   Center,
+  Checkbox,
   Code,
   createTheme,
   Flex,
@@ -31,6 +32,7 @@ import {
   IconCopy,
   IconCopyCheck,
   IconFile,
+  IconKey,
   IconMapPin,
   IconWorld,
 } from "@tabler/icons-react";
@@ -200,6 +202,7 @@ function Editor() {
   const templateSeries = use(seriesPromise);
 
   let initialValues: {
+    id: string | null;
     prefix: string;
     suffix: string;
     dates: [string | null, string | null];
@@ -208,6 +211,7 @@ function Editor() {
     country?: string;
     latLng?: [number, number];
   } = {
+    id: null,
     prefix: "",
     suffix: "",
     dates: [null, null],
@@ -262,7 +266,7 @@ function Editor() {
     d != null ? parseDate(d, "yyyy-MM-dd", refDate) : null,
   ) as [Date | null, Date | null];
 
-  const conId = useMemo(
+  const seriesId = useMemo(
     () =>
       slugify(
         form.values.prefix,
@@ -273,25 +277,28 @@ function Editor() {
     [form.values.country, form.values.prefix],
   );
 
+  const generatedEventId = useMemo(() => {
+    const values = form.getValues();
+
+    const idSuffix =
+      endDate != null && getYear(endDate).toString() == values.suffix
+        ? values.suffix
+        : startDate != null
+          ? getYear(startDate).toString()
+          : "";
+    return idSuffix != "" ? `${seriesId}-${idSuffix}` : seriesId;
+  }, [form, startDate, endDate, seriesId]);
+
   const outputSeries = useMemo(() => {
     const values = form.getValues();
 
     const [startDate, endDate] = values.dates;
 
-    const idSuffix =
-      endDate != null &&
-      getYear(parseDate(endDate, "yyyy-MM-dd", refDate)).toString() ==
-        values.suffix
-        ? values.suffix
-        : startDate != null
-          ? getYear(startDate).toString()
-          : "";
-
     return {
       name: values.prefix,
       events: [
         {
-          id: idSuffix != "" ? `${conId}-${idSuffix}` : conId,
+          id: values.id ?? generatedEventId,
           name:
             values.prefix != ""
               ? `${values.prefix}${values.suffix != "" ? ` ${values.suffix}` : ""}`
@@ -313,7 +320,7 @@ function Editor() {
           : []),
       ],
     };
-  }, [templateSeries, conId, form, refDate]);
+  }, [templateSeries, generatedEventId, form]);
 
   const validationErrors = useMemo(() => {
     const validate = makeValidate();
@@ -336,6 +343,30 @@ function Editor() {
           console.log(values);
         })}
       >
+        <TextInput
+          {...form.getInputProps("id")}
+          leftSection={<IconKey size={16} />}
+          label={<Trans>ID</Trans>}
+          value={form.values.id ?? generatedEventId}
+          onChange={(e) => {
+            form.setValues((prev) => ({ ...prev, id: e.target.value }));
+          }}
+          disabled={form.values.id == null}
+          rightSectionWidth="auto"
+          rightSection={
+            <Checkbox
+              px="xs"
+              label={<Trans>Auto</Trans>}
+              checked={form.values.id == null}
+              onChange={(e) => {
+                form.setValues((prev) => ({
+                  ...prev,
+                  id: e.target.checked ? null : "",
+                }));
+              }}
+            />
+          }
+        />
         <Input.Wrapper
           {...form.getInputProps("name")}
           size="sm"
@@ -437,7 +468,7 @@ function Editor() {
       <Flex style={{ flexGrow: 1, flexDirection: "column" }} gap={6}>
         <TextInput
           readOnly
-          value={`${conId}.json`}
+          value={`${seriesId}.json`}
           size="xs"
           leftSection={<IconFile size={14} />}
         />
