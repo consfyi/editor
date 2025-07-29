@@ -45,7 +45,7 @@ import {
   parse as parseDate,
   startOfMonth,
 } from "date-fns";
-import { Suspense, use, useMemo } from "react";
+import { Suspense, use, useMemo, useState } from "react";
 import { messages } from "./locales/en/messages.po";
 import PlacePicker from "./PlacePicker";
 
@@ -198,58 +198,61 @@ function addYearSameWeekday(date: Date) {
 }
 
 function Editor() {
+  const { i18n, t } = useLingui();
+
   const templateSeries = use(seriesPromise);
 
-  let initialValues: {
-    id: string | null;
-    prefix: string;
-    suffix: string;
-    dates: [string | null, string | null];
-    url: string;
-    location: string;
-    country?: string;
-    latLng?: [number, number];
-  } = {
-    id: null,
-    prefix: "",
-    suffix: "",
-    dates: [null, null],
-    url: "",
-    location: "",
-    country: undefined,
-    latLng: undefined,
-  };
-  if (templateSeries != null && templateSeries.events.length > 0) {
-    const templateEvent =
-      templateSeries.events[templateSeries.events.length - 1];
-
-    let suffix = (getYear(new Date(templateEvent.startDate)) + 1).toString();
-    const match = templateEvent.name.match(/(\d+)$/);
-    if (match != null) {
-      suffix = (parseInt(match[1], 10) + 1).toString();
-    }
-
-    const refDate = new Date();
-    const [startDate, endDate] = [
-      templateEvent.startDate,
-      templateEvent.endDate,
-    ].map((d) => parseDate(d, "yyyy-MM-dd", refDate));
-
-    initialValues = {
-      ...initialValues,
-      prefix: templateSeries.name,
-      suffix,
-      url: templateEvent.url,
-      dates: [addYearSameWeekday(startDate), addYearSameWeekday(endDate)].map(
-        (d) => formatDate(d, "yyyy-MM-dd"),
-      ) as [string, string],
-      location: templateEvent.location,
-      country: templateEvent.country,
-      latLng: templateEvent.latLng,
+  const [initialValues] = useState(() => {
+    let initialValues: {
+      id: string | null;
+      prefix: string;
+      suffix: string;
+      dates: [string | null, string | null];
+      url: string;
+      location: string;
+      country?: string;
+      latLng?: [number, number];
+    } = {
+      id: null,
+      prefix: "",
+      suffix: "",
+      dates: [null, null],
+      url: "",
+      location: "",
+      country: undefined,
+      latLng: undefined,
     };
-  }
+    if (templateSeries != null && templateSeries.events.length > 0) {
+      const templateEvent =
+        templateSeries.events[templateSeries.events.length - 1];
 
-  const { i18n, t } = useLingui();
+      let suffix = (getYear(new Date(templateEvent.startDate)) + 1).toString();
+      const match = templateEvent.name.match(/(\d+)$/);
+      if (match != null) {
+        suffix = (parseInt(match[1], 10) + 1).toString();
+      }
+
+      const refDate = new Date();
+      const [startDate, endDate] = [
+        templateEvent.startDate,
+        templateEvent.endDate,
+      ].map((d) => parseDate(d, "yyyy-MM-dd", refDate));
+
+      initialValues = {
+        ...initialValues,
+        prefix: templateSeries.name,
+        suffix,
+        url: templateEvent.url,
+        dates: [addYearSameWeekday(startDate), addYearSameWeekday(endDate)].map(
+          (d) => formatDate(d, "yyyy-MM-dd"),
+        ) as [string, string],
+        location: templateEvent.location,
+        country: templateEvent.country,
+        latLng: templateEvent.latLng,
+      };
+    }
+    return initialValues;
+  });
 
   const form = useForm({
     mode: "controlled",
