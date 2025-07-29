@@ -73,14 +73,8 @@ function myStringifyWithErrors(
         .map((v, i) => {
           const path = `${parent}/${i}`;
           const errors = errorsByPath[path] ?? [];
-          return [
-            ...(errors.length > 0
-              ? [`// ${i} ${errors.map((e) => e.message).join(", ")}`]
-              : []),
-            `${stringify(path, v, depth + 1)}${i < value.length - 1 ? "," : ""}`,
-          ]
-            .map((v) => `${indent.repeat(depth + 1)}${v}`)
-            .join("\n");
+          const json = stringify(path, v, depth + 1);
+          return `${indent.repeat(depth + 1)}${json}${i < value.length - 1 ? "," : ""}${errors.length > 0 ? ` // ${errors.map((e) => e.message).join(", ")}` : ""}`;
         })
         .join("\n");
       return `[\n${inner}\n${indent.repeat(depth)}]`;
@@ -102,18 +96,9 @@ function myStringifyWithErrors(
         .map((k, i) => {
           const path = `${parent}/${k}`;
           const errors = errorsByPath[path] ?? [];
-          return [
-            ...(errors.length > 0
-              ? [`// ${k} ${errors.map((e) => e.message).join(", ")}`]
-              : []),
-            `"${k}": ${stringify(
-              path,
-              value[k as keyof typeof value],
-              depth + 1,
-            )}${i < keys.length - 1 ? "," : ""}`,
-          ]
-            .map((v) => `${indent.repeat(depth + 1)}${v}`)
-            .join("\n");
+          const v = value[k as keyof typeof value];
+          const json = stringify(path, v, depth + 1);
+          return `${indent.repeat(depth + 1)}${JSON.stringify(k)}: ${json}${i < keys.length - 1 ? "," : ""}${errors.length > 0 ? ` // ${errors.map((e) => e.message).join(", ")}` : ""}`;
         })
         .join("\n");
       return `{\n${inner}\n${indent.repeat(depth)}}`;
