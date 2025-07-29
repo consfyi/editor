@@ -47,7 +47,7 @@ import {
   parse as parseDate,
   startOfMonth,
 } from "date-fns";
-import { Suspense, use, useMemo } from "react";
+import { Fragment, Suspense, use, useMemo } from "react";
 import { messages } from "./locales/en/messages.po";
 import PlacePicker from "./PlacePicker";
 
@@ -74,7 +74,9 @@ function myStringifyWithErrors(
           const path = `${parent}/${i}`;
           const errors = errorsByPath[path] ?? [];
           return [
-            ...errors.map((e) => `// ERROR: ${i} ${e.message}`),
+            ...(errors.length > 0
+              ? [`// ${i} ${errors.map((e) => e.message).join(", ")}`]
+              : []),
             `${stringify(path, v, depth + 1)}${i < value.length - 1 ? "," : ""}`,
           ]
             .map((v) => `${indent.repeat(depth + 1)}${v}`)
@@ -101,7 +103,9 @@ function myStringifyWithErrors(
           const path = `${parent}/${k}`;
           const errors = errorsByPath[path] ?? [];
           return [
-            ...errors.map((e) => `// ERROR: ${k} ${e.message}`),
+            ...(errors.length > 0
+              ? [`// ${k} ${errors.map((e) => e.message).join(", ")}`]
+              : []),
             `"${k}": ${stringify(
               path,
               value[k as keyof typeof value],
@@ -458,19 +462,29 @@ function Editor() {
             block
             style={{ wordWrap: "break-word", whiteSpace: "pre-wrap" }}
           >
-            {raw.split("\n").map((v, i) => (
-              <span
-                key={i}
-                style={{
-                  color: v.match(/^ *\/\/ ERROR:/)
-                    ? "var(--mantine-color-error)"
-                    : undefined,
-                }}
-              >
-                {v}
-                {"\n"}
-              </span>
-            ))}
+            {raw.split("\n").map((v, i) => {
+              const j = v.indexOf("//");
+
+              return (
+                <Fragment key={i}>
+                  {j >= 0 ? (
+                    <>
+                      {v.slice(0, j)}
+                      <span
+                        style={{
+                          color: "var(--mantine-color-error)",
+                        }}
+                      >
+                        {v.slice(j)}
+                      </span>
+                    </>
+                  ) : (
+                    v
+                  )}
+                  {"\n"}
+                </Fragment>
+              );
+            })}
           </Code>
           <Tooltip
             c={validationErrors.length > 0 ? "red" : undefined}
