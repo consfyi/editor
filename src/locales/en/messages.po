@@ -13,32 +13,40 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: src/App.tsx:354
+#: src/App.tsx:349
+msgid "ID"
+msgstr "ID"
+
+#: src/App.tsx:359
+msgid "Auto"
+msgstr "Auto"
+
+#: src/App.tsx:374
 msgid "Name"
 msgstr "Name"
 
-#: src/App.tsx:369
+#: src/App.tsx:389
 msgid "Website"
 msgstr "Website"
 
-#: src/App.tsx:372
+#: src/App.tsx:392
 msgid "Dates"
 msgstr "Dates"
 
-#: src/App.tsx:437
+#: src/App.tsx:457
 msgid "Location"
 msgstr "Location"
 
 #. placeholder {0}: validationErrors.length
-#: src/App.tsx:480
+#: src/App.tsx:510
 msgid "{0, plural, one {There is # error to resolve.} other {There are # errors to resolve.}}"
 msgstr "{0, plural, one {There is # error to resolve.} other {There are # errors to resolve.}}"
 
-#: src/App.tsx:486
+#: src/App.tsx:516
 msgid "Copied!"
 msgstr "Copied!"
 
-#: src/App.tsx:488
+#: src/App.tsx:518
 msgid "Copy to clipboard"
 msgstr "Copy to clipboard"
 
