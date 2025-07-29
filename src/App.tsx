@@ -372,6 +372,7 @@ function Editor() {
         <Input.Wrapper size="sm" mb="xs" label={<Trans>Dates</Trans>}>
           <Flex mb="xs" gap="xs">
             <DateInput
+              size="sm"
               leftSection={<IconCalendar size={16} />}
               popoverProps={{ disabled: true }}
               value={startDate}
@@ -384,6 +385,7 @@ function Editor() {
               style={{ flexGrow: 1 }}
             />
             <DateInput
+              size="sm"
               leftSection={<IconCalendar size={16} />}
               popoverProps={{ disabled: true }}
               value={endDate}
@@ -475,15 +477,11 @@ function Editor() {
             position="left"
             label={
               validationErrors.length > 0 ? (
-                <Trans>
-                  There are{" "}
-                  <Plural
-                    value={validationErrors.length}
-                    one="# error"
-                    other="# errors"
-                  />{" "}
-                  to resolve.
-                </Trans>
+                <Plural
+                  value={validationErrors.length}
+                  one="There is # error to resolve."
+                  other="There are # errors to resolve."
+                />
               ) : clipboard.copied ? (
                 <Trans>Copied!</Trans>
               ) : (
