@@ -15,6 +15,7 @@
     "@googlemaps/js-api-loader": "^1.16.10",
     "@lingui/core": "^5.3.3",
     "@lingui/react": "^5.3.3",
+    "@mantine/code-highlight": "^8.2.1",
     "@mantine/core": "^8.2.1",
     "@mantine/dates": "^8.2.1",
     "@mantine/form": "^8.2.1",
@@ -30,7 +31,8 @@
     "maplibre-gl": "^5.6.1",
     "maplibre-theme": "^1.0.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "shiki": "^3.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

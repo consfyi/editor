@@ -1,36 +1,32 @@
 import { i18n } from "@lingui/core";
 import { I18nProvider } from "@lingui/react";
-import { Plural, Trans, useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
-  ActionIcon,
-  Box,
+  CodeHighlight,
+  CodeHighlightAdapterProvider,
+  createShikiAdapter,
+} from "@mantine/code-highlight";
+import {
   Center,
   Checkbox,
-  Code,
   createTheme,
   Flex,
   Input,
   Loader,
   MantineProvider,
   TextInput,
-  Tooltip,
 } from "@mantine/core";
-import "@mantine/core/styles.css";
 import {
   DateInput,
   DatePicker,
   DatesProvider,
   type DayOfWeek,
 } from "@mantine/dates";
-import "@mantine/dates/styles.css";
 import { useForm } from "@mantine/form";
-import { useClipboard } from "@mantine/hooks";
 import {
   Icon123,
   IconAbc,
   IconCalendar,
-  IconCopy,
-  IconCopyCheck,
   IconFile,
   IconKey,
   IconMapPin,
@@ -49,9 +45,13 @@ import {
   parse as parseDate,
   startOfMonth,
 } from "date-fns";
-import { Fragment, Suspense, use, useMemo } from "react";
+import { Suspense, use, useMemo } from "react";
 import { messages } from "./locales/en/messages.po";
 import PlacePicker from "./PlacePicker";
+
+import "@mantine/core/styles.css";
+import "@mantine/dates/styles.css";
+import "@mantine/code-highlight/styles.css";
 
 i18n.loadAndActivate({ locale: "en", messages });
 
@@ -76,7 +76,7 @@ function myStringifyWithErrors(
           const path = `${parent}/${i}`;
           const errors = errorsByPath[path] ?? [];
           const json = stringify(path, v, depth + 1);
-          return `${indent.repeat(depth + 1)}${json}${i < value.length - 1 ? "," : ""}${errors.length > 0 ? ` // ${errors.map((e) => e.message).join(", ")}` : ""}`;
+          return `${indent.repeat(depth + 1)}${json}${i < value.length - 1 ? "," : ""}${errors.length > 0 ? ` // ERROR: ${errors.map((e) => e.message).join(", ")}` : ""}`;
         })
         .join("\n");
       return `[\n${inner}\n${indent.repeat(depth)}]`;
@@ -100,7 +100,7 @@ function myStringifyWithErrors(
           const errors = errorsByPath[path] ?? [];
           const v = value[k as keyof typeof value];
           const json = stringify(path, v, depth + 1);
-          return `${indent.repeat(depth + 1)}${JSON.stringify(k)}: ${json}${i < keys.length - 1 ? "," : ""}${errors.length > 0 ? ` // ${errors.map((e) => e.message).join(", ")}` : ""}`;
+          return `${indent.repeat(depth + 1)}${JSON.stringify(k)}: ${json}${i < keys.length - 1 ? "," : ""}${errors.length > 0 ? ` // ERROR: ${errors.map((e) => e.message).join(", ")}` : ""}`;
         })
         .join("\n");
       return `{\n${inner}\n${indent.repeat(depth)}}`;
@@ -250,7 +250,7 @@ function Editor() {
     };
   }
 
-  const { i18n } = useLingui();
+  const { i18n, t } = useLingui();
 
   const form = useForm({
     mode: "controlled",
@@ -332,8 +332,6 @@ function Editor() {
     () => myStringifyWithErrors(outputSeries, validationErrors),
     [validationErrors, outputSeries],
   );
-
-  const clipboard = useClipboard();
 
   return (
     <Flex w="100%" gap="xs" p="xs">
@@ -472,71 +470,12 @@ function Editor() {
           size="xs"
           leftSection={<IconFile size={14} />}
         />
-        <Box style={{ position: "relative", flexGrow: 1 }}>
-          <Code
-            h="100%"
-            block
-            style={{ wordWrap: "break-word", whiteSpace: "pre-wrap" }}
-          >
-            {raw.split("\n").map((v, i) => {
-              const j = v.indexOf("//");
-
-              return (
-                <Fragment key={i}>
-                  {j >= 0 ? (
-                    <>
-                      {v.slice(0, j)}
-                      <span
-                        style={{
-                          color: "var(--mantine-color-error)",
-                        }}
-                      >
-                        {v.slice(j)}
-                      </span>
-                    </>
-                  ) : (
-                    v
-                  )}
-                  {"\n"}
-                </Fragment>
-              );
-            })}
-          </Code>
-          <Tooltip
-            c={validationErrors.length > 0 ? "red" : undefined}
-            position="left"
-            label={
-              validationErrors.length > 0 ? (
-                <Plural
-                  value={validationErrors.length}
-                  one="There is # error to resolve."
-                  other="There are # errors to resolve."
-                />
-              ) : clipboard.copied ? (
-                <Trans>Copied!</Trans>
-              ) : (
-                <Trans>Copy to clipboard</Trans>
-              )
-            }
-          >
-            <ActionIcon
-              disabled={validationErrors.length > 0}
-              pos="absolute"
-              right={6}
-              top={6}
-              variant="default"
-              onClick={() => {
-                clipboard.copy(raw);
-              }}
-            >
-              {clipboard.copied ? (
-                <IconCopyCheck size={16} />
-              ) : (
-                <IconCopy size={16} />
-              )}
-            </ActionIcon>
-          </Tooltip>
-        </Box>
+        <CodeHighlight
+          code={raw}
+          language="javascript"
+          copyLabel={t`Copy to clipboard`}
+          copiedLabel={t`Copied!`}
+        />
       </Flex>
     </Flex>
   );
@@ -555,26 +494,36 @@ const WEEK_INFO = (() => {
   );
 })();
 
+const shikiAdapter = createShikiAdapter(async () => {
+  const { createHighlighter } = await import("shiki");
+  return await createHighlighter({
+    langs: ["js"],
+    themes: [],
+  });
+});
+
 export default function App() {
   return (
     <I18nProvider i18n={i18n}>
       <MantineProvider theme={theme}>
-        <DatesProvider
-          settings={{
-            firstDayOfWeek: (WEEK_INFO.firstDay % 7) as DayOfWeek,
-            weekendDays: WEEK_INFO.weekend.map((d) => (d % 7) as DayOfWeek),
-          }}
-        >
-          <Suspense
-            fallback={
-              <Center>
-                <Loader />
-              </Center>
-            }
+        <CodeHighlightAdapterProvider adapter={shikiAdapter}>
+          <DatesProvider
+            settings={{
+              firstDayOfWeek: (WEEK_INFO.firstDay % 7) as DayOfWeek,
+              weekendDays: WEEK_INFO.weekend.map((d) => (d % 7) as DayOfWeek),
+            }}
           >
-            <Editor />
-          </Suspense>
-        </DatesProvider>
+            <Suspense
+              fallback={
+                <Center>
+                  <Loader />
+                </Center>
+              }
+            >
+              <Editor />
+            </Suspense>
+          </DatesProvider>
+        </CodeHighlightAdapterProvider>
       </MantineProvider>
     </I18nProvider>
   );
