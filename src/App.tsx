@@ -359,7 +359,7 @@ function Editor() {
               onChange={(e) => {
                 form.setValues((prev) => ({
                   ...prev,
-                  id: e.target.checked ? null : "",
+                  id: e.target.checked ? null : generatedEventId,
                 }));
               }}
             />
