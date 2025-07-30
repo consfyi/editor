@@ -147,7 +147,7 @@ const seriesPromise = (async () => {
       url: string;
       startDate: string;
       endDate: string;
-      location: string;
+      location: string[];
       country?: string;
       latLng?: [number, number];
       sources?: string[];
@@ -209,7 +209,7 @@ function Editor() {
       suffix: string;
       dates: [string | null, string | null];
       url: string;
-      location: string;
+      location: string[];
       country?: string;
       latLng?: [number, number];
     } = {
@@ -218,7 +218,7 @@ function Editor() {
       suffix: "",
       dates: [null, null],
       url: "",
-      location: "",
+      location: [],
       country: undefined,
       latLng: undefined,
     };
@@ -453,7 +453,7 @@ function Editor() {
           onChange={(place) => {
             form.setValues((prev) => ({
               ...prev,
-              location: place != null ? place.location : "",
+              location: place != null ? place.location : [],
               country: place != null ? place.country : undefined,
               latLng: place != null ? place.latLng : undefined,
             }));
