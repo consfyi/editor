@@ -144,6 +144,10 @@ export default function PlacePicker({
     [onChange],
   );
 
+  const [primaryLocation, ...secondaryLocationParts] =
+    value != null ? value.location : [];
+  const secondaryLocation = secondaryLocationParts.join(", ");
+
   return (
     <Input.Wrapper
       label={label}
@@ -209,8 +213,9 @@ export default function PlacePicker({
                     size={10}
                     me={6}
                   />
-                  {value.location}
+                  {primaryLocation}
                 </Text>
+                <Text size="sm">{secondaryLocation}</Text>
                 <Text size="sm">
                   ({value.latLng[0].toFixed(4)}, {value.latLng[1].toFixed(4)})
                 </Text>
