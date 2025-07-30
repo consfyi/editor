@@ -21,9 +21,18 @@ import Flag from "./Flag";
 import { BasicMap, BasicMarker } from "./Map";
 
 export interface Place {
-  location: string[];
+  venue: string;
+  address?: string;
   country?: string;
   latLng?: [number, number];
+}
+
+function showPlace(p: Place) {
+  let s = p.venue;
+  if (p.address != null) {
+    s += ` ${p.address}`;
+  }
+  return s;
 }
 
 const GOOGLE_MAPS_LOADER = new GoogleMapsLoader({
@@ -77,7 +86,7 @@ export default function PlacePicker({
   const places = use(placesLibraryPromise);
 
   const [inputValue, setInputValue] = useState(() =>
-    value != null ? value.location.join(", ") : null,
+    value != null ? showPlace(value) : null,
   );
   const [loading, setLoading] = useState<boolean>(false);
   const [retrieving, setRetrieving] = useState<boolean>(false);
@@ -136,7 +145,7 @@ export default function PlacePicker({
     (v: Place | null) => {
       setOptions({});
       onChange(v);
-      setInputValue(v != null ? v.location.join(", ") : "");
+      setInputValue(v != null ? showPlace(v) : "");
       if (v == null) {
         setAttributions([]);
       }
@@ -145,7 +154,7 @@ export default function PlacePicker({
   );
 
   const [primaryLocation, ...secondaryLocationParts] =
-    value != null ? value.location : [];
+    value != null ? showPlace(value) : [];
   const secondaryLocation = secondaryLocationParts.join(", ");
 
   return (
@@ -271,13 +280,13 @@ export default function PlacePicker({
                   const suggestion = options[v];
                   setOptions({});
                   ref.current!.blur();
-                  const location = [
-                    suggestion.placePrediction!.mainText!.text,
-                    ...(suggestion.placePrediction!.secondaryText != null
-                      ? [suggestion.placePrediction!.secondaryText.text]
-                      : []),
-                  ];
-                  setInputValue(location.join(", "));
+                  const p: Place = {
+                    venue: suggestion.placePrediction!.mainText!.text,
+                    address:
+                      suggestion.placePrediction!.secondaryText?.text ??
+                      undefined,
+                  };
+                  setInputValue(showPlace(p));
                   setRetrieving(true);
                   resetSessionToken();
                   (async () => {
@@ -290,27 +299,22 @@ export default function PlacePicker({
                           "attributions",
                         ],
                       });
-                      let latLng = [
+                      p.latLng = [
                         place.location!.lat(),
                         place.location!.lng(),
                       ] as [number, number];
-                      const country = place.addressComponents!.find((c) =>
+                      p.country = place.addressComponents!.find((c) =>
                         c.types.includes("country"),
                       )!.shortText!;
-                      if (country == "CN") {
-                        let [lat, lng] = latLng;
+                      if (p.country == "CN") {
+                        let [lat, lng] = p.latLng;
                         [lng, lat] = gcj02ToWgs84(lng, lat);
-                        latLng = [lat, lng];
+                        p.latLng = [lat, lng];
                       }
-                      const p = {
-                        location,
-                        latLng,
-                        country,
-                      };
                       setValue(p);
                       setViewState({
-                        latitude: latLng[0],
-                        longitude: latLng[1],
+                        latitude: p.latLng[0],
+                        longitude: p.latLng[1],
                         zoom: 17,
                       });
                       setAttributions(place.attributions!);
@@ -332,7 +336,7 @@ export default function PlacePicker({
                 onBlur={(e) => {
                   needsPredictionRef.current = false;
                   setOptions({});
-                  setInputValue(value != null ? value.location.join(", ") : "");
+                  setInputValue(value != null ? showPlace(value) : "");
                   if (onBlur != null) {
                     onBlur(e);
                   }
@@ -346,9 +350,9 @@ export default function PlacePicker({
           <Box mt={4} p="xs">
             <TextInput
               leftSection={leftSection}
-              value={value != null ? value.location[0] : ""}
+              value={value != null ? value.venue : ""}
               onChange={(e) => {
-                setValue({ location: [e.target.value] });
+                setValue({ venue: e.target.value });
               }}
             />
           </Box>

@@ -147,7 +147,8 @@ const seriesPromise = (async () => {
       url: string;
       startDate: string;
       endDate: string;
-      location: string[];
+      venue: string;
+      address?: string;
       country?: string;
       latLng?: [number, number];
       sources?: string[];
@@ -209,7 +210,8 @@ function Editor() {
       suffix: string;
       dates: [string | null, string | null];
       url: string;
-      location: string[];
+      venue: string;
+      address?: string;
       country?: string;
       latLng?: [number, number];
     } = {
@@ -218,9 +220,7 @@ function Editor() {
       suffix: "",
       dates: [null, null],
       url: "",
-      location: [],
-      country: undefined,
-      latLng: undefined,
+      venue: "",
     };
     if (templateSeries != null && templateSeries.events.length > 0) {
       const templateEvent =
@@ -246,7 +246,8 @@ function Editor() {
         dates: [addYearSameWeekday(startDate), addYearSameWeekday(endDate)].map(
           (d) => formatDate(d, "yyyy-MM-dd"),
         ) as [string, string],
-        location: templateEvent.location,
+        venue: templateEvent.venue,
+        address: templateEvent.address,
         country: templateEvent.country,
         latLng: templateEvent.latLng,
       };
@@ -308,7 +309,8 @@ function Editor() {
           url: values.url,
           startDate: startDate ?? "",
           endDate: endDate ?? "",
-          location: values.location,
+          venue: values.venue,
+          address: values.address,
           country: values.country,
           latLng: values.latLng,
         },
@@ -440,11 +442,12 @@ function Editor() {
           mb="xs"
           leftSection={<IconMapPin size={16} />}
           value={
-            form.values.location != null
+            form.values.venue != ""
               ? {
+                  venue: form.values.venue,
+                  address: form.values.address,
                   country: form.values.country,
                   latLng: form.values.latLng,
-                  location: form.values.location,
                 }
               : null
           }
@@ -452,7 +455,8 @@ function Editor() {
           onChange={(place) => {
             form.setValues((prev) => ({
               ...prev,
-              location: place != null ? place.location : [],
+              venue: place != null ? place.venue : "",
+              address: place != null ? place.address : undefined,
               country: place != null ? place.country : undefined,
               latLng: place != null ? place.latLng : undefined,
             }));
