@@ -30,7 +30,7 @@ export interface Place {
 function showPlace(p: Place) {
   let s = p.venue;
   if (p.address != null) {
-    s += ` ${p.address}`;
+    s += `, ${p.address}`;
   }
   return s;
 }
@@ -153,10 +153,6 @@ export default function PlacePicker({
     [onChange],
   );
 
-  const [primaryLocation, ...secondaryLocationParts] =
-    value != null ? showPlace(value) : [];
-  const secondaryLocation = secondaryLocationParts.join(", ");
-
   return (
     <Input.Wrapper
       label={label}
@@ -209,9 +205,9 @@ export default function PlacePicker({
                         size={10}
                         me={6}
                       />
-                      {primaryLocation}
+                      {value.venue}
                     </Text>
-                    <Text size="sm">{secondaryLocation}</Text>
+                    <Text size="sm">{value.address}</Text>
                     <Text size="sm">
                       ({value.latLng[0].toFixed(4)},{" "}
                       {value.latLng[1].toFixed(4)})
