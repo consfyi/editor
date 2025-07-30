@@ -1,6 +1,7 @@
 /// <reference types="@types/google.maps" />
 
 import { Loader as GoogleMapsLoader } from "@googlemaps/js-api-loader";
+import { gcj02ToWgs84 } from "@pansy/lnglat-transform";
 import { Trans } from "@lingui/react/macro";
 import {
   Anchor,
@@ -20,7 +21,7 @@ import IntlList from "./IntlList";
 import { BasicMap, BasicMarker } from "./Map";
 
 export interface Place {
-  location: string;
+  location: string[];
   country?: string;
   latLng?: [number, number];
 }
@@ -76,7 +77,7 @@ export default function PlacePicker({
   const places = use(placesLibraryPromise);
 
   const [inputValue, setInputValue] = useState(() =>
-    value != null ? value.location : null,
+    value != null ? value.location.join(", ") : null,
   );
   const [loading, setLoading] = useState<boolean>(false);
   const [retrieving, setRetrieving] = useState<boolean>(false);
@@ -135,7 +136,7 @@ export default function PlacePicker({
     (v: Place | null) => {
       setOptions({});
       onChange(v);
-      setInputValue(v != null ? v.location : "");
+      setInputValue(v != null ? v.location.join(", ") : "");
       if (v == null) {
         setAttributions([]);
       }
@@ -280,8 +281,8 @@ export default function PlacePicker({
                 ...(suggestion.placePrediction!.secondaryText != null
                   ? [suggestion.placePrediction!.secondaryText.text]
                   : []),
-              ].join(", ");
-              setInputValue(location);
+              ];
+              setInputValue(location.join(", "));
               setRetrieving(true);
               resetSessionToken();
               (async () => {
@@ -290,16 +291,22 @@ export default function PlacePicker({
                   await place.fetchFields({
                     fields: ["location", "addressComponents", "attributions"],
                   });
-                  const latLng = [
+                  let latLng = [
                     place.location!.lat(),
                     place.location!.lng(),
                   ] as [number, number];
+                  const country = place.addressComponents!.find((c) =>
+                    c.types.includes("country"),
+                  )!.shortText!;
+                  if (country == "CN") {
+                    let [lat, lng] = latLng;
+                    [lng, lat] = gcj02ToWgs84(lng, lat);
+                    latLng = [lat, lng];
+                  }
                   const p = {
                     location,
                     latLng,
-                    country: place.addressComponents!.find((c) =>
-                      c.types.includes("country"),
-                    )!.shortText!,
+                    country,
                   };
                   setValue(p);
                   setViewState({
@@ -326,7 +333,7 @@ export default function PlacePicker({
             onBlur={(e) => {
               needsPredictionRef.current = false;
               setOptions({});
-              setInputValue(value != null ? value.location : "");
+              setInputValue(value != null ? value.location.join(", ") : "");
               if (onBlur != null) {
                 onBlur(e);
               }
