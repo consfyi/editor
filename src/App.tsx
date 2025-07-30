@@ -438,7 +438,6 @@ function Editor() {
         <PlacePicker
           size="sm"
           mb="xs"
-          clearable
           leftSection={<IconMapPin size={16} />}
           value={
             form.values.location != null

@@ -13,48 +13,42 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: src/App.tsx:349
+#: src/App.tsx:344
 msgid "ID"
 msgstr "ID"
 
-#: src/App.tsx:359
+#: src/App.tsx:354
 msgid "Auto"
 msgstr "Auto"
 
-#: src/App.tsx:374
+#: src/App.tsx:369
 msgid "Name"
 msgstr "Name"
 
-#: src/App.tsx:389
+#: src/App.tsx:384
 msgid "Website"
 msgstr "Website"
 
-#: src/App.tsx:392
+#: src/App.tsx:387
 msgid "Dates"
 msgstr "Dates"
 
-#: src/App.tsx:457
+#: src/App.tsx:451
 msgid "Location"
 msgstr "Location"
 
-#. placeholder {0}: validationErrors.length
-#: src/App.tsx:510
-msgid "{0, plural, one {There is # error to resolve.} other {There are # errors to resolve.}}"
-msgstr "{0, plural, one {There is # error to resolve.} other {There are # errors to resolve.}}"
-
-#: src/App.tsx:516
-msgid "Copied!"
-msgstr "Copied!"
-
-#: src/App.tsx:518
+#: src/App.tsx:472
 msgid "Copy to clipboard"
 msgstr "Copy to clipboard"
 
-#. placeholder {0}: attributions.length > 0 ? ( <Trans> Result provided by{" "} <IntlList items={attributions.map(({ provider, providerURI }) => providerURI != undefined ? ( <Anchor href={providerURI} target="_blank" key={provider}> {provider} </Anchor> ) : ( <Fragment key={provider}>provider</Fragment> ), )} /> . </Trans> ) : null
-#: src/PlacePicker.tsx:151
-msgid "Place search provided by Google Maps. {0}"
-msgstr "Place search provided by Google Maps. {0}"
+#: src/App.tsx:473
+msgid "Copied!"
+msgstr "Copied!"
 
-#: src/PlacePicker.tsx:154
-msgid "Result provided by <0/>."
-msgstr "Result provided by <0/>."
+#: src/PlacePicker.tsx:160
+msgid "Geographical"
+msgstr "Geographical"
+
+#: src/PlacePicker.tsx:163
+msgid "Freeform"
+msgstr "Freeform"

@@ -1,23 +1,23 @@
 /// <reference types="@types/google.maps" />
 
 import { Loader as GoogleMapsLoader } from "@googlemaps/js-api-loader";
-import { gcj02ToWgs84 } from "@pansy/lnglat-transform";
 import { Trans } from "@lingui/react/macro";
 import {
-  Anchor,
   Autocomplete,
   type AutocompleteProps,
   Box,
   Input,
   type InputWrapperProps,
   Loader,
+  Tabs,
   Text,
+  TextInput,
 } from "@mantine/core";
 import { useDebouncedCallback } from "@mantine/hooks";
+import { gcj02ToWgs84 } from "@pansy/lnglat-transform";
 import { Popup, type ViewStateChangeEvent } from "@vis.gl/react-maplibre";
-import { Fragment, use, useCallback, useRef, useState } from "react";
+import { use, useCallback, useRef, useState } from "react";
 import Flag from "./Flag";
-import IntlList from "./IntlList";
 import { BasicMap, BasicMarker } from "./Map";
 
 export interface Place {
@@ -151,201 +151,209 @@ export default function PlacePicker({
   return (
     <Input.Wrapper
       label={label}
-      description={
-        <Text span size="xs">
-          <Trans>
-            Place search provided by Google Maps.{" "}
-            {attributions.length > 0 ? (
-              <Trans>
-                Result provided by{" "}
-                <IntlList
-                  items={attributions.map(({ provider, providerURI }) =>
-                    providerURI != undefined ? (
-                      <Anchor href={providerURI} target="_blank" key={provider}>
-                        {provider}
-                      </Anchor>
-                    ) : (
-                      <Fragment key={provider}>provider</Fragment>
-                    ),
-                  )}
-                />
-                .
-              </Trans>
-            ) : null}
-          </Trans>
-        </Text>
-      }
       error={error}
       {...(props as InputWrapperProps)}
     >
-      <Box style={{ position: "relative" }} mt={4}>
-        <BasicMap
-          {...viewState}
-          onMove={(evt: ViewStateChangeEvent) => {
-            setViewState(evt.viewState);
-          }}
-          style={{
-            height: "600px",
-            borderRadius: "var(--mantine-radius-default)",
-          }}
-        >
-          {value != null && value.latLng != null ? (
-            <>
-              <BasicMarker
-                latitude={value.latLng[0]}
-                longitude={value.latLng[1]}
-                color="red"
-                variant="filled"
-              />
-              <Popup
-                latitude={value.latLng[0]}
-                longitude={value.latLng[1]}
-                closeButton={false}
-                closeOnClick={false}
-                focusAfterOpen={false}
-                maxWidth="none"
-                anchor="bottom"
-              >
-                <Text size="sm" fw={500}>
-                  <Flag
-                    key={value.country}
-                    country={value.country ?? undefined}
-                    size={10}
-                    me={6}
-                  />
-                  {primaryLocation}
-                </Text>
-                <Text size="sm">{secondaryLocation}</Text>
-                <Text size="sm">
-                  ({value.latLng[0].toFixed(4)}, {value.latLng[1].toFixed(4)})
-                </Text>
-              </Popup>
-            </>
-          ) : null}
-        </BasicMap>
-        <Box style={{ position: "absolute", top: 0, left: 0, width: "100%" }}>
-          <Autocomplete
-            {...props}
-            type="search"
-            m="xs"
-            ref={ref}
-            value={inputValue ?? undefined}
-            data={Object.keys(options)}
-            renderOption={({ option }) => {
-              const suggestion = options[option.value];
-              return (
-                <Box>
-                  <Text size="sm">
-                    {suggestion.placePrediction!.mainText!.text}
-                  </Text>
-                  <Text size="xs">
-                    {suggestion.placePrediction!.secondaryText != null
-                      ? suggestion.placePrediction!.secondaryText.text
-                      : null}
-                  </Text>
-                </Box>
-              );
-            }}
-            error={error != null ? true : null}
-            clearable={clearable}
-            disabled={disabled || retrieving}
-            leftSection={leftSection}
-            rightSection={
-              rightSection != null ? (
+      <Tabs variant="outline" defaultValue="geographical">
+        <Tabs.List>
+          <Tabs.Tab value="geographical">
+            <Trans>Geographical</Trans>
+          </Tabs.Tab>
+          <Tabs.Tab value="freeform">
+            <Trans>Freeform</Trans>
+          </Tabs.Tab>
+        </Tabs.List>
+
+        <Tabs.Panel value="geographical">
+          <Box style={{ position: "relative" }} mt={4}>
+            <BasicMap
+              {...viewState}
+              onMove={(evt: ViewStateChangeEvent) => {
+                setViewState(evt.viewState);
+              }}
+              style={{
+                height: "600px",
+                borderRadius: "var(--mantine-radius-default)",
+              }}
+            >
+              {value != null && value.latLng != null ? (
                 <>
-                  {loading || retrieving ? (
-                    <Loader size="xs" color="dimmed" />
-                  ) : null}
-                  {rightSection}
+                  <BasicMarker
+                    latitude={value.latLng[0]}
+                    longitude={value.latLng[1]}
+                    color="red"
+                    variant="filled"
+                  />
+                  <Popup
+                    latitude={value.latLng[0]}
+                    longitude={value.latLng[1]}
+                    closeButton={false}
+                    closeOnClick={false}
+                    focusAfterOpen={false}
+                    maxWidth="none"
+                    anchor="bottom"
+                  >
+                    <Text size="sm" fw={500}>
+                      <Flag
+                        key={value.country}
+                        country={value.country ?? undefined}
+                        size={10}
+                        me={6}
+                      />
+                      {primaryLocation}
+                    </Text>
+                    <Text size="sm">{secondaryLocation}</Text>
+                    <Text size="sm">
+                      ({value.latLng[0].toFixed(4)},{" "}
+                      {value.latLng[1].toFixed(4)})
+                    </Text>
+                  </Popup>
                 </>
-              ) : loading || retrieving ? (
-                <Loader size="xs" color="dimmed" />
-              ) : null
-            }
-            filter={({ options }) => options}
-            onChange={(v) => {
-              if (document.activeElement !== ref.current) {
-                return;
-              }
-
-              setInputValue(v);
-              if (v == "") {
-                return;
-              }
-
-              needsPredictionRef.current = true;
-              setLoading(true);
-              updatePredictions(v);
-            }}
-            onOptionSubmit={(v) => {
-              const suggestion = options[v];
-              setOptions({});
-              ref.current!.blur();
-              const location = [
-                suggestion.placePrediction!.mainText!.text,
-                ...(suggestion.placePrediction!.secondaryText != null
-                  ? [suggestion.placePrediction!.secondaryText.text]
-                  : []),
-              ];
-              setInputValue(location.join(", "));
-              setRetrieving(true);
-              resetSessionToken();
-              (async () => {
-                try {
-                  const place = suggestion.placePrediction!.toPlace();
-                  await place.fetchFields({
-                    fields: ["location", "addressComponents", "attributions"],
-                  });
-                  let latLng = [
-                    place.location!.lat(),
-                    place.location!.lng(),
-                  ] as [number, number];
-                  const country = place.addressComponents!.find((c) =>
-                    c.types.includes("country"),
-                  )!.shortText!;
-                  if (country == "CN") {
-                    let [lat, lng] = latLng;
-                    [lng, lat] = gcj02ToWgs84(lng, lat);
-                    latLng = [lat, lng];
-                  }
-                  const p = {
-                    location,
-                    latLng,
-                    country,
-                  };
-                  setValue(p);
-                  setViewState({
-                    latitude: latLng[0],
-                    longitude: latLng[1],
-                    zoom: 17,
-                  });
-                  setAttributions(place.attributions!);
-                } catch (e) {
-                  setInputValue("");
-                  throw e;
-                } finally {
-                  setRetrieving(false);
+              ) : null}
+            </BasicMap>
+            <Box
+              style={{ position: "absolute", top: 0, left: 0, width: "100%" }}
+            >
+              <Autocomplete
+                {...props}
+                type="search"
+                m="xs"
+                ref={ref}
+                value={inputValue ?? undefined}
+                data={Object.keys(options)}
+                renderOption={({ option }) => {
+                  const suggestion = options[option.value];
+                  return (
+                    <Box>
+                      <Text size="sm">
+                        {suggestion.placePrediction!.mainText!.text}
+                      </Text>
+                      <Text size="xs">
+                        {suggestion.placePrediction!.secondaryText != null
+                          ? suggestion.placePrediction!.secondaryText.text
+                          : null}
+                      </Text>
+                    </Box>
+                  );
+                }}
+                error={error != null ? true : null}
+                clearable={clearable}
+                disabled={disabled || retrieving}
+                leftSection={leftSection}
+                rightSection={
+                  rightSection != null ? (
+                    <>
+                      {loading || retrieving ? (
+                        <Loader size="xs" color="dimmed" />
+                      ) : null}
+                      {rightSection}
+                    </>
+                  ) : loading || retrieving ? (
+                    <Loader size="xs" color="dimmed" />
+                  ) : null
                 }
-              })();
-            }}
-            onClear={() => {
-              needsPredictionRef.current = false;
-              setValue(null);
-              if (onClear != null) {
-                onClear();
-              }
-            }}
-            onBlur={(e) => {
-              needsPredictionRef.current = false;
-              setOptions({});
-              setInputValue(value != null ? value.location.join(", ") : "");
-              if (onBlur != null) {
-                onBlur(e);
-              }
-            }}
-          />
-        </Box>
-      </Box>
+                filter={({ options }) => options}
+                onChange={(v) => {
+                  if (document.activeElement !== ref.current) {
+                    return;
+                  }
+
+                  setInputValue(v);
+                  if (v == "") {
+                    return;
+                  }
+
+                  needsPredictionRef.current = true;
+                  setLoading(true);
+                  updatePredictions(v);
+                }}
+                onOptionSubmit={(v) => {
+                  const suggestion = options[v];
+                  setOptions({});
+                  ref.current!.blur();
+                  const location = [
+                    suggestion.placePrediction!.mainText!.text,
+                    ...(suggestion.placePrediction!.secondaryText != null
+                      ? [suggestion.placePrediction!.secondaryText.text]
+                      : []),
+                  ];
+                  setInputValue(location.join(", "));
+                  setRetrieving(true);
+                  resetSessionToken();
+                  (async () => {
+                    try {
+                      const place = suggestion.placePrediction!.toPlace();
+                      await place.fetchFields({
+                        fields: [
+                          "location",
+                          "addressComponents",
+                          "attributions",
+                        ],
+                      });
+                      let latLng = [
+                        place.location!.lat(),
+                        place.location!.lng(),
+                      ] as [number, number];
+                      const country = place.addressComponents!.find((c) =>
+                        c.types.includes("country"),
+                      )!.shortText!;
+                      if (country == "CN") {
+                        let [lat, lng] = latLng;
+                        [lng, lat] = gcj02ToWgs84(lng, lat);
+                        latLng = [lat, lng];
+                      }
+                      const p = {
+                        location,
+                        latLng,
+                        country,
+                      };
+                      setValue(p);
+                      setViewState({
+                        latitude: latLng[0],
+                        longitude: latLng[1],
+                        zoom: 17,
+                      });
+                      setAttributions(place.attributions!);
+                    } catch (e) {
+                      setInputValue("");
+                      throw e;
+                    } finally {
+                      setRetrieving(false);
+                    }
+                  })();
+                }}
+                onClear={() => {
+                  needsPredictionRef.current = false;
+                  setValue(null);
+                  if (onClear != null) {
+                    onClear();
+                  }
+                }}
+                onBlur={(e) => {
+                  needsPredictionRef.current = false;
+                  setOptions({});
+                  setInputValue(value != null ? value.location.join(", ") : "");
+                  if (onBlur != null) {
+                    onBlur(e);
+                  }
+                }}
+              />
+            </Box>
+          </Box>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="freeform">
+          <Box mt={4} p="xs">
+            <TextInput
+              leftSection={leftSection}
+              value={value != null ? value.location[0] : ""}
+              onChange={(e) => {
+                setValue({ location: [e.target.value] });
+              }}
+            />
+          </Box>
+        </Tabs.Panel>
+      </Tabs>
     </Input.Wrapper>
   );
 }
