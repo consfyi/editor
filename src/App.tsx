@@ -114,7 +114,7 @@ function myStringifyWithErrors(
 
 const SCHEMA = await (async () => {
   const resp = await fetch(
-    "https://raw.githubusercontent.com/consfyi/data/refs/heads/main/.tools/schema.json",
+    "https://raw.githubusercontent.com/consfyi/data/refs/heads/main/tools/schema.json",
   );
   if (!resp.ok) {
     throw resp;
