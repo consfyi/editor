@@ -282,15 +282,8 @@ function Editor() {
 
   const generatedEventId = useMemo(() => {
     const values = form.getValues();
-
-    const idSuffix =
-      endDate != null && getYear(endDate).toString() == values.suffix
-        ? values.suffix
-        : startDate != null
-          ? getYear(startDate).toString()
-          : "";
-    return idSuffix != "" ? `${seriesId}-${idSuffix}` : seriesId;
-  }, [form, startDate, endDate, seriesId]);
+    return values.suffix != "" ? `${seriesId}-${values.suffix}` : seriesId;
+  }, [form, seriesId]);
 
   const outputSeries = useMemo(() => {
     const values = form.getValues();
